@@ -5,10 +5,20 @@ on:
     branches: [ main ]
   push:
     tags: [ 'v*' ]
+    branches: [ main ]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest  
+            rid: osx-arm64
+          - os: windows-latest
+            rid: win-x64
     
     steps:
     - uses: actions/checkout@v4
@@ -26,7 +36,7 @@ jobs:
     - name: Build
       run: dotnet build -c Release --no-restore
       
-    - name: Test
+    - name: Test Source Generator
       run: dotnet test BlazorTS.SourceGenerator.Tests/ -c Release --no-build
 
   package:
@@ -68,7 +78,16 @@ jobs:
 
   integration-test:
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: windows-latest
+            rid: win-x64
     
     steps:
     - uses: actions/checkout@v4
@@ -105,7 +124,7 @@ jobs:
         dotnet add BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS.SourceGenerator --version $VERSION --source ./artifacts
       shell: bash
       
-    - name: Test Package
+    - name: Test Package on ${{ matrix.rid }}
       run: dotnet test BlazorTS.TestPackage/ -c Release
       shell: bash
 
