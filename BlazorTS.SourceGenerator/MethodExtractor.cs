@@ -12,16 +12,4 @@ public class MethodExtractor
         return analyzer.ExtractFunctions(code);
     }
     
-    // 保持向后兼容的方法名称提取
-    public static IEnumerable<string> ExtractNames(string code)
-    {
-        return Extract(code).Select(f => f.Name);
-    }
-
-    // 保持原有API兼容性 - 内部调用新方法
-    [Obsolete("Use Extract(string code) instead")]
-    private static IEnumerable<string> ExtractLegacy(string code)
-    {
-        return ExtractNames(code);
-    }
 }

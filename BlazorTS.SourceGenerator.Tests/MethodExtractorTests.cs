@@ -64,48 +64,6 @@ var isEnabled = true;
         Assert.Empty(functions);
     }
 
-    [Fact]
-    public void ExtractNames_ValidTypeScript_ReturnsFunctionNames()
-    {
-        // Arrange
-        var code = @"
-function first(): string { return 'first'; }
-function second(x: number): number { return x * 2; }
-function third(): void { }
-";
-
-        // Act
-        var names = MethodExtractor.ExtractNames(code);
-
-        // Assert
-        Assert.Equal(3, names.Count());
-        Assert.Contains("first", names);
-        Assert.Contains("second", names);
-        Assert.Contains("third", names);
-    }
-
-    [Fact]
-    public void ExtractNames_EmptyCode_ReturnsEmpty()
-    {
-        // Act & Assert
-        Assert.Empty(MethodExtractor.ExtractNames(""));
-        Assert.Empty(MethodExtractor.ExtractNames("   "));
-        Assert.Empty(MethodExtractor.ExtractNames(null));
-    }
-
-    [Fact]
-    public void ExtractNames_SingleFunction_ReturnsSingleName()
-    {
-        // Arrange
-        var code = "function calculate(x: number): number { return x * 2; }";
-
-        // Act
-        var names = MethodExtractor.ExtractNames(code);
-
-        // Assert
-        var name = Assert.Single(names);
-        Assert.Equal("calculate", name);
-    }
 
     [Fact]
     public void Extract_ComplexTypeScript_HandlesAllFeatures()
@@ -186,23 +144,4 @@ export async function exportedAsync(): Promise<void> {
         Assert.Contains(functions, f => f.Name == "exportedAsync");
     }
 
-    [Fact]
-    public void ExtractNames_PreservesOrder()
-    {
-        // Arrange
-        var code = @"
-function alpha(): void { }
-function beta(): void { }
-function gamma(): void { }
-";
-
-        // Act
-        var names = MethodExtractor.ExtractNames(code).ToList();
-
-        // Assert
-        Assert.Equal(3, names.Count);
-        Assert.Equal("alpha", names[0]);
-        Assert.Equal("beta", names[1]);
-        Assert.Equal("gamma", names[2]);
-    }
 }
