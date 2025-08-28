@@ -92,7 +92,7 @@ public class ResolveGeneratorTests : TestBase
         // Arrange
         var generator = new ResolveGenerator();
         var tsContent = @"
-function processData(
+export function processData(
     text: string,
     count: number,
     flag: boolean,
@@ -125,7 +125,7 @@ function processData(
     {
         // Arrange
         var generator = new ResolveGenerator();
-        var tsContent = "function initialize(): void { console.log('init'); }";
+        var tsContent = "export function initialize(): void { console.log('init'); }";
         var tsFile = CreateAdditionalText("Init.ts", tsContent);
 
         // Act

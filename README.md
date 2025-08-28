@@ -111,8 +111,9 @@ public partial class TestFunctions
 
 ## 构建和测试
 
-### 清理缓存
 ```bash
+
+### 清理缓存
 dotnet clean
 dotnet nuget locals all --clear
 rm -rf **/bin **/obj
@@ -123,17 +124,11 @@ dotnet clean
 dotnet nuget locals all --clear
 trash -f **/bin **/obj
 trash -f ./artifacts/*.nupkg
-```
 
-### 基本命令
-```bash
-dotnet restore
-dotnet build
-dotnet test
-```
 
 ### 打包测试
-```bash
+dotnet test BlazorTS.SourceGenerator.Tests/
+dotnet test
 dotnet pack --configuration Release --output ./artifacts/
 dotnet build-server shutdown
 dotnet add package  BlazorTS.SourceGenerator --version 0.1.0-dev --project BlazorTS.TestPackage/
