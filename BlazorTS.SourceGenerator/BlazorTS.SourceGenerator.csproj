@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+        <CLSCompliant>true</CLSCompliant>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <LangVersion>13</LangVersion>
+        <!-- <TargetFramework>netstandard2.1</TargetFramework> -->
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>BlazorTS</RootNamespace>
+        <PackageId>BlazorTS.SourceGenerator</PackageId>
+        <Version>0.1.0-dev</Version>
+        <Description>BlazorTS TypeScript源代码生成器</Description>
+        <PackageTags>blazor;typescript;source-generator;roslyn</PackageTags>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IncludeSymbols>false</IncludeSymbols>
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\roslyn4.0\$(AssemblyName).dll" Visible="false" />
+        <None Include="$(PkgMoreLinq)\lib\netstandard2.0\MoreLinq.dll" Pack="true" PackagePath="analyzers\dotnet\roslyn4.0\MoreLinq.dll" Visible="false" />
+        <None Include="$(PkgTypeScriptParser)\lib\netstandard2.1\TypeScriptParser.dll" Pack="true" PackagePath="analyzers\dotnet\roslyn4.0\TypeScriptParser.dll" Visible="false" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);3021</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="morelinq" Version="4.4.0" GeneratePathProperty="true" PrivateAssets="all" />
+        <TargetPathWithTargetPlatformMoniker Include="$(PkgMoreLinq)\lib\netstandard2.0\MoreLinq.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TypeScriptParser" Version="0.4.2.39" IncludeAssets="all" GeneratePathProperty="true" />
+        <TargetPathWithTargetPlatformMoniker Include="$(PkgTypeScriptParser)\lib\netstandard2.1\TypeScriptParser.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25155.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+        <PackageReference Include="System.Linq" Version="4.3.0" />
+    </ItemGroup>
+
+</Project>

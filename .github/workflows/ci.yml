@@ -1,0 +1,129 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Restore
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build -c Release --no-restore
+      
+    - name: Test
+      run: dotnet test BlazorTS.SourceGenerator.Tests/ -c Release --no-build
+
+  pack-and-publish:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Set Version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION="${TAG}.${{ github.run_number }}"
+        else
+          VERSION="1.0.0-pr${{ github.event.number }}.${{ github.run_number }}"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        
+    - name: Restore
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build -c Release -p:Version=$VERSION --no-restore
+      
+    - name: Pack
+      run: dotnet pack -c Release -p:Version=$VERSION --no-build -o ./artifacts
+      
+    - name: Upload Packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: artifacts/*.nupkg
+
+  package-test:
+    needs: pack-and-publish
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Download NuGet Packages
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./artifacts
+        
+    - name: Set Version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION="${TAG}.${{ github.run_number }}"
+        else
+          VERSION="1.0.0-pr${{ github.event.number }}.${{ github.run_number }}"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+      shell: bash
+      
+    - name: Restore Dependencies
+      run: dotnet restore BlazorTS.TestPackage/
+      shell: bash
+      
+    - name: Update Package Reference
+      run: |
+        dotnet remove BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS.SourceGenerator
+        dotnet add BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS.SourceGenerator --version $VERSION --source ./artifacts
+      shell: bash
+      
+    - name: Test Package
+      run: dotnet test BlazorTS.TestPackage/ -c Release
+      shell: bash
+
+  publish:
+    needs: package-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev')
+    
+    steps:
+    - name: Download NuGet Packages
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./artifacts
+        
+    - name: Publish to NuGet
+      run: |
+        dotnet nuget push artifacts/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate

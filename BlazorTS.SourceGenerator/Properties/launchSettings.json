@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Generate": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\BlazorApp2\\BlazorApp2.csproj"
+    }
+  }
+}

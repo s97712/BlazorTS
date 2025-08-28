@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PackageId>BlazorTS</PackageId>
+        <Version>0.1.0-dev</Version>
+        <Description>Blazor TypeScript互操作组件库</Description>
+        <PackageTags>blazor;typescript;interop;javascript</PackageTags>
+        <NoWarn>$(NoWarn);NU5128;CS1591</NoWarn>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <SupportedPlatform Include="browser"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="wwwroot\invokeWrapper.js" />
+    </ItemGroup>
+
+</Project>
