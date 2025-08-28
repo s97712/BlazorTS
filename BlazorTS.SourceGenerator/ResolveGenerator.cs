@@ -20,11 +20,11 @@ namespace BlazorTS
             context.RegisterSourceOutput(context.CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
             {
                 var (compilation, optionsProvider) = data;
-                var nativePath = Helper.GetTypeScriptParserNativePath(compilation, optionsProvider);
+                var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, optionsProvider);
                 Helper.Log(spc, $"TypeScript Parser Native Path: {nativePath}");
 
                 // 检查nativePath是否有效，如果无效则跳过处理
-                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                if (string.IsNullOrEmpty(nativePath))
                 {
                     Helper.Log(spc, $"Skipping TypeScript processing - invalid nativePath: {nativePath}");
                     return;
@@ -71,9 +71,9 @@ namespace BlazorTS
             context.RegisterSourceOutput(tsFilesProvider.Collect().Combine(context.CompilationProvider).Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
             {
                 var ((paths, compilation), optionsProvider) = data;
-                var nativePath = Helper.GetTypeScriptParserNativePath(compilation, optionsProvider);
+                var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, optionsProvider);
                 
-                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                if (string.IsNullOrEmpty(nativePath))
                 {
                     Helper.Log(spc, $"Skipping TypeScript files processing - invalid nativePath: {nativePath}");
                     return;
@@ -93,7 +93,7 @@ namespace BlazorTS
                     var (options, compilation) = data;
                     options.GlobalOptions.TryGetValue("build_property.ProjectDir", out var dir);
                     options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns);
-                    var nativePath = Helper.GetTypeScriptParserNativePath(compilation, options);
+                    var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, options);
                     return (dir, ns, nativePath);
                 });
 
@@ -121,7 +121,7 @@ namespace BlazorTS
                 var nativePath = meta.nativePath;
                 
                 // 检测nativePath是否有效
-                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                if (string.IsNullOrEmpty(nativePath))
                 {
                     Helper.Log(spc, $"Skipping TypeScript processing - invalid nativePath: {nativePath}");
                     return;
@@ -158,37 +158,6 @@ namespace BlazorTS
                 spc.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
             }
             return $"{ns}.{className}";
-        }
-
-        private static string GenerateJsModuleCode(string ns, string className, IEnumerable<string> methods)
-        {
-            var fullName = $"{ns}.{className}";
-            var code = $@"
-
-using BlazorApp2.services.JSInterop;
-using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-
-namespace {ns} {{
-public partial class {className}
-{{
-
-[Inject] JSInterop JS {{ get; set; }}
-public class JSInterop(IJSRuntime runtime) {{
-    private JsResolve JsModule = new JsResolve(runtime, JsResolve.Resolve(typeof({fullName})));
-
-    {methods.Select(method => $@"
-    public async Task<object?> {method}(object?[]? args) {{
-        return await JsModule.InvokeAsync<object?>(""{method}"", args);
-    }}
-    ").ToDelimitedString("\n")}
-    
-}}
-}}
-}}
-";
-
-            return code;
         }
 
         private static string GenerateWrapper(string ns, string className, IEnumerable<TSFunction> methods)

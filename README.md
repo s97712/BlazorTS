@@ -150,7 +150,7 @@ BLAZORTS_LOG_ENABLED=true dotnet test BlazorTS.TestPackage/
 ### 发布流程
 1. 创建版本标签：
 ```bash
-(VERSION=v0.1.0 && git tag $VERSION && git push origin $VERSION)
+(VERSION=v1.0.5 && git tag $VERSION && git push origin $VERSION)
 ```
 2. 自动构建测试发布到NuGet.org
 3. 版本号格式：`1.0.0.{构建号}`
