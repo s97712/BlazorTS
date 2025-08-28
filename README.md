@@ -26,11 +26,16 @@ export function greet(name: string, age?: number): void {
 }
 ```
 
-### 2. 项目配置
+### 2. 安装包
+```bash
+# 安装BlazorTS源代码生成器
+dotnet add package BlazorTS
+dotnet add package BlazorTS.SourceGenerator
+```
+
 ```xml
-<!-- 项目文件中添加 -->
+<!-- 在项目文件中添加TypeScript文件为附加文件 -->
 <ItemGroup>
-  <PackageReference Include="BlazorTS.SourceGenerator" Version="0.1.0-dev" />
   <AdditionalFiles Include="**/*.ts" />
 </ItemGroup>
 ```

@@ -7,7 +7,7 @@ on:
     tags: [ 'v*' ]
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     
     steps:
@@ -29,8 +29,8 @@ jobs:
     - name: Test
       run: dotnet test BlazorTS.SourceGenerator.Tests/ -c Release --no-build
 
-  pack-and-publish:
-    needs: build-and-test
+  package:
+    needs: test
     runs-on: ubuntu-latest
     
     steps:
@@ -66,8 +66,8 @@ jobs:
         name: nuget-packages
         path: artifacts/*.nupkg
 
-  package-test:
-    needs: pack-and-publish
+  integration-test:
+    needs: package
     runs-on: ubuntu-latest
     
     steps:
@@ -109,8 +109,8 @@ jobs:
       run: dotnet test BlazorTS.TestPackage/ -c Release
       shell: bash
 
-  publish:
-    needs: package-test
+  release:
+    needs: integration-test
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev')
     
