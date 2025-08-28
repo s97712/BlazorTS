@@ -2,12 +2,10 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
         <PackageId>BlazorTS</PackageId>
-        <Version>0.1.0-dev</Version>
         <Description>Blazor TypeScript互操作组件库</Description>
         <PackageTags>blazor;typescript;interop;javascript</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <NoWarn>$(NoWarn);NU5128;CS1591</NoWarn>
     </PropertyGroup>
 
@@ -22,6 +20,10 @@
 
     <ItemGroup>
       <AdditionalFiles Include="wwwroot\invokeWrapper.js" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="../README.md" Pack="true" PackagePath="README.md"/>
     </ItemGroup>
 
 </Project>

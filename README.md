@@ -112,11 +112,11 @@ dotnet clean
 dotnet nuget locals all --clear
 
 rm -rf **/bin **/obj
-rm -rf ./packages
+rm -rf ./artifacts
 
 # or trash
-trash **/bin **/obj
-trash ./packages/*.nupkg
+trash -f **/bin **/obj
+trash -f ./artifacts/*.nupkg
 ```
 
 ### 基本命令
@@ -128,7 +128,7 @@ dotnet test
 
 ### 打包测试
 ```bash
-dotnet pack --configuration Release --output ./packages/
+dotnet pack --configuration Release --output ./artifacts/
 dotnet test BlazorTS.TestPackage/
 ```
 
