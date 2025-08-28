@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
         <CLSCompliant>true</CLSCompliant>
         <IsRoslynComponent>true</IsRoslynComponent>
@@ -11,12 +9,13 @@
         <TargetFramework>net9.0</TargetFramework>
         <RootNamespace>BlazorTS</RootNamespace>
         <PackageId>BlazorTS.SourceGenerator</PackageId>
-        <Version>0.1.0-dev</Version>
         <Description>BlazorTS TypeScript源代码生成器</Description>
         <PackageTags>blazor;typescript;source-generator;roslyn</PackageTags>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <IncludeSymbols>false</IncludeSymbols>
         <DevelopmentDependency>true</DevelopmentDependency>
+        <!-- 覆盖全局 README 设置，SourceGenerator 不需要 README -->
+        <PackageReadmeFile></PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,7 +25,7 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <NoWarn>$(NoWarn);3021</NoWarn>
+        <NoWarn>$(NoWarn);3021;CS1591;RS1041;RS2008</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

@@ -1,0 +1,30 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- 版本管理 -->
+    <Version Condition="'$(Version)' == ''">0.1.0-dev</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    
+    <!-- 包信息 -->
+    <Authors>BlazorTS Team</Authors>
+    <Company>BlazorTS</Company>
+    <Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/s97712/blazorts</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/s97712/blazorts</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>基于 TypeScriptParser 和 Tree-sitter 的 Blazor TypeScript 互操作框架</PackageReleaseNotes>
+    
+    <!-- 构建配置 -->
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
+    <!-- Blazor 相关配置 -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
