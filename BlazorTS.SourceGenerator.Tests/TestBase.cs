@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using System.Reflection;
 
 namespace BlazorTS.SourceGenerator.Tests;
 
@@ -23,7 +24,8 @@ public abstract class TestBase
         var optionsProvider = new TestAnalyzerConfigOptionsProvider(new Dictionary<string, string>
         {
             ["build_property.ProjectDir"] = projectDir,
-            ["build_property.RootNamespace"] = rootNamespace
+            ["build_property.RootNamespace"] = rootNamespace,
+            ["build_property.TypeScriptParserNativePath"] = GetTypeScriptParserNativePathFromAssembly()
         });
 
         return (CSharpGeneratorDriver)CSharpGeneratorDriver.Create(generator)
@@ -85,6 +87,32 @@ public abstract class TestBase
         Xunit.Assert.Equal(expectedReturnType, function.ReturnType);
         Xunit.Assert.Equal(expectedIsAsync, function.IsAsync);
         Xunit.Assert.Equal(expectedParameterCount, function.Parameters.Count);
+    }
+
+    /// <summary>
+    /// 从执行程序集的元数据中获取TypeScriptParserNativePath
+    /// </summary>
+    private static string GetTypeScriptParserNativePathFromAssembly()
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var attributes = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+            
+            foreach (var attr in attributes)
+            {
+                if (attr.Key == "TypeScriptParserNativePath")
+                {
+                    return attr.Value ?? "/test/native/";
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // 忽略异常，返回默认测试路径
+        }
+        
+        return null;
     }
 }
 

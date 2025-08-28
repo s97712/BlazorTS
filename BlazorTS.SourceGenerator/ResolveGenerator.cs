@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using System.Text;
 using MoreLinq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using BlazorTS.SourceGenerator;
 
 namespace BlazorTS
@@ -15,17 +16,25 @@ namespace BlazorTS
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
 
-
             // 首先显示native path信息 - 作为第一个RegisterSourceOutput确保能看到
-            context.RegisterSourceOutput(context.AnalyzerConfigOptionsProvider, (spc, options) =>
+            context.RegisterSourceOutput(context.CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
             {
-                // 显示native path路径
-                var nativePath = Helper.GetTypeScriptParserNativePath();
+                var (compilation, optionsProvider) = data;
+                var nativePath = Helper.GetTypeScriptParserNativePath(compilation, optionsProvider);
                 Helper.Log(spc, $"TypeScript Parser Native Path: {nativePath}");
+
+                // 检查nativePath是否有效，如果无效则跳过处理
+                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                {
+                    Helper.Log(spc, $"Skipping TypeScript processing - invalid nativePath: {nativePath}");
+                    return;
+                }
 
                 try
                 {
-                    Helper.SetupNativeLibraryResolver();
+                    var dllResolver = new DllResolver(nativePath);
+                    NativeLibrary.SetDllImportResolver(typeof(TypeScriptParser.Parser).Assembly,
+                        (libraryName, assembly, searchPath) => dllResolver.Resolve(libraryName, assembly, searchPath));
                 }
                 catch (Exception ex)
                 {
@@ -37,33 +46,39 @@ namespace BlazorTS
                 Helper.Log(spc, $"Source Generator Assembly Location: {assembly.Location}");
                 
                 // 检查native库文件是否存在
-                if (!string.IsNullOrEmpty(nativePath) && nativePath != "未找到")
+                var exists = Directory.Exists(nativePath);
+                if (exists)
                 {
-                    var exists = Directory.Exists(nativePath);
-                    if (exists)
+                    try
                     {
-                        try
-                        {
-                            var files = Directory.GetFiles(nativePath, "*.*");
-                            Helper.Log(spc, $"Files in native path: {string.Join(", ", files.Select(Path.GetFileName))}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Helper.Log(spc, $"Error listing native path files: {ex.Message}");
-                        }
+                        var files = Directory.GetFiles(nativePath, "*.*");
+                        Helper.Log(spc, $"Files in native path: {string.Join(", ", files.Select(Path.GetFileName))}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Helper.Log(spc, $"Error listing native path files: {ex.Message}");
                     }
                 }
             });
 
-            // 添加调试日志
+            // TypeScript文件处理
             var tsFilesProvider = context
                 .AdditionalTextsProvider
                 .Where(static file => file.Path.EndsWith(".ts", StringComparison.OrdinalIgnoreCase))
-                .Select((file, _) => file.Path);
+                .Select(static (file, _) => file.Path);
             
             // 注册诊断输出
-            context.RegisterSourceOutput(tsFilesProvider.Collect(), (spc, paths) =>
+            context.RegisterSourceOutput(tsFilesProvider.Collect().Combine(context.CompilationProvider).Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
             {
+                var ((paths, compilation), optionsProvider) = data;
+                var nativePath = Helper.GetTypeScriptParserNativePath(compilation, optionsProvider);
+                
+                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                {
+                    Helper.Log(spc, $"Skipping TypeScript files processing - invalid nativePath: {nativePath}");
+                    return;
+                }
+
                 Helper.Log(spc, $"Found {paths.Length} TypeScript files");
                 foreach (var path in paths)
                 {
@@ -72,12 +87,14 @@ namespace BlazorTS
             });
 
             // 真正业务逻辑
-            var metaProvider = context.AnalyzerConfigOptionsProvider
-                .Select((options, _) =>
+            var metaProvider = context.AnalyzerConfigOptionsProvider.Combine(context.CompilationProvider)
+                .Select((data, _) =>
                 {
+                    var (options, compilation) = data;
                     options.GlobalOptions.TryGetValue("build_property.ProjectDir", out var dir);
                     options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns);
-                    return (dir, ns);
+                    var nativePath = Helper.GetTypeScriptParserNativePath(compilation, options);
+                    return (dir, ns, nativePath);
                 });
 
             var razorJsFiles = context
@@ -91,16 +108,26 @@ namespace BlazorTS
                     var (additionalText, meta) = info;
 
                     var content = additionalText.GetText(cancellationToken)?.ToString() ?? string.Empty;
-                    var path = Path.GetRelativePath(meta.dir, additionalText.Path);
+                    var path = Path.GetRelativePath(meta.dir ?? string.Empty, additionalText.Path);
 
                     return (Path: Path.Join(meta.ns, path), Content: content);
                 })
                 .Collect();
 
 
-            context.RegisterSourceOutput(razorContents, (spc, files) =>
+            context.RegisterSourceOutput(razorContents.Combine(metaProvider), (spc, data) =>
             {
-                Helper.Log(spc, $"Processing {files.Length} TypeScript files");
+                var (files, meta) = data;
+                var nativePath = meta.nativePath;
+                
+                // 检测nativePath是否有效
+                if (string.IsNullOrEmpty(nativePath) || nativePath == "未找到")
+                {
+                    Helper.Log(spc, $"Skipping TypeScript processing - invalid nativePath: {nativePath}");
+                    return;
+                }
+
+                Helper.Log(spc, $"Processing {files.Length} TypeScript files with nativePath: {nativePath}");
                 
                 var names = files
                     .Select(item => Generate(spc, item.Path, item.Content))

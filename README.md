@@ -115,11 +115,12 @@ public partial class TestFunctions
 ```bash
 dotnet clean
 dotnet nuget locals all --clear
-
 rm -rf **/bin **/obj
 rm -rf ./artifacts
 
 # or trash
+dotnet clean
+dotnet nuget locals all --clear
 trash -f **/bin **/obj
 trash -f ./artifacts/*.nupkg
 ```
@@ -134,7 +135,9 @@ dotnet test
 ### 打包测试
 ```bash
 dotnet pack --configuration Release --output ./artifacts/
-dotnet test BlazorTS.TestPackage/
+dotnet build-server shutdown
+dotnet add package  BlazorTS.SourceGenerator --version 0.1.0-dev --project BlazorTS.TestPackage/
+BLAZORTS_LOG_ENABLED=true dotnet test BlazorTS.TestPackage/
 ```
 
 ## CI/CD流程

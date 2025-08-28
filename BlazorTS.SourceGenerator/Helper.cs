@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace BlazorTS.SourceGenerator
 {
@@ -83,63 +84,45 @@ namespace BlazorTS.SourceGenerator
             return Debugger.IsAttached;
         }
 
-        /// <summary>
-        /// 设置Native库解析器，重定向到源生成器程序集目录
-        /// </summary>
-        public static void SetupNativeLibraryResolver()
-        {
-#if NET5_0_OR_GREATER
-            NativeLibrary.SetDllImportResolver(typeof(TypeScriptParser.Parser).Assembly, DllImportResolver);
-#endif
-        }
 
         /// <summary>
-        /// DLL导入解析器
+        /// 获取TypeScript解析器Native路径 - 从build property或Compilation的AssemblyMetadata获取
         /// </summary>
-        private static IntPtr DllImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        public static string GetTypeScriptParserNativePath(Compilation compilation, AnalyzerConfigOptionsProvider optionsProvider = null)
         {
-#if NET5_0_OR_GREATER
-            var assemblyDir = GetTypeScriptParserNativePath();
-
-            if (!string.IsNullOrEmpty(assemblyDir))
+            try
             {
-                // 构建可能的库文件路径
-                var possiblePaths = new[]
+                // 先尝试从build property获取
+                if (optionsProvider?.GlobalOptions?.TryGetValue("build_property.TypeScriptParserNativePath", out var buildPath) == true &&
+                    !string.IsNullOrEmpty(buildPath))
                 {
-                    Path.Combine(assemblyDir, $"lib{libraryName}.so"),
-                    Path.Combine(assemblyDir, $"{libraryName}.so"),
-                    Path.Combine(assemblyDir, $"{libraryName}.dll")
-                };
-
-                foreach (var path in possiblePaths)
+                    return buildPath;
+                }
+                
+                // 如果没有，再尝试从Assembly级别的MetadataAttribute获取
+                var assemblyAttributes = compilation.Assembly.GetAttributes();
+                
+                foreach (var attr in assemblyAttributes)
                 {
-                    try
+                    if (attr.AttributeClass?.Name == "AssemblyMetadataAttribute" &&
+                        attr.ConstructorArguments.Length == 2)
                     {
-                        return NativeLibrary.Load(path);
-                    }
-                    catch
-                    {
-                        // 忽略加载失败，继续尝试下一个路径
+                        var key = attr.ConstructorArguments[0].Value?.ToString();
+                        var value = attr.ConstructorArguments[1].Value?.ToString();
+                        
+                        if (key == "TypeScriptParserNativePath")
+                        {
+                            return value;
+                        }
                     }
                 }
             }
-#endif
+            catch (Exception)
+            {
+                // 忽略异常，返回null
+            }
 
-            // 回退到默认行为
-            return IntPtr.Zero;
-        }
-
-        /// <summary>
-        /// 获取TypeScript解析器Native路径
-        /// </summary>
-        public static string GetTypeScriptParserNativePath()
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-
-            var nativePath = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-                .FirstOrDefault(attr => attr.Key == "TypeScriptParserNativePath")?.Value ?? "未找到";
-
-            return nativePath;
+            return null;
         }
 
 

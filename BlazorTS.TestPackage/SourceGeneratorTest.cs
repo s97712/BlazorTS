@@ -1,19 +1,16 @@
 using System.Reflection;
 using Xunit;
 
-namespace BlazorTS.TestPackage.Tests
+namespace BlazorTS.TestPackage
 {
-
     public partial class TestFunctions { }
-
     public class SourceGeneratorTests
     {
         [Fact]
         public void Test_Generated_Functions_Exist()
         {
-
-            // 使用反射测试确保正确生成函数
-            var testFunctionsType = typeof(BlazorTS.TestPackage.TestFunctions);
+            // 使用反射测试确保正确生成函数 - 引用实际的生成类
+            var testFunctionsType = typeof(TestFunctions);
             
             // 获取TSInterop嵌套类
             var tsInteropType = testFunctionsType.GetNestedType("TSInterop");
@@ -28,5 +25,4 @@ namespace BlazorTS.TestPackage.Tests
             Assert.Contains("greet", methodNames);
         }
     }
-
 }
