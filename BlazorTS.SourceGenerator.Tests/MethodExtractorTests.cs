@@ -68,21 +68,21 @@ var isEnabled = true;
     [Fact]
     public void Extract_ComplexTypeScript_HandlesAllFeatures()
     {
-        // Arrange
+        // Arrange - 修改为导出函数
         var code = @"
-function simple(): void {
+export function simple(): void {
     console.log('simple');
 }
 
-async function asyncFunc(url: string): Promise<Response> {
+export async function asyncFunc(url: string): Promise<Response> {
     return fetch(url);
 }
 
-function withOptional(required: string, optional?: number): boolean {
+export function withOptional(required: string, optional?: number): boolean {
     return true;
 }
 
-function multipleParams(a: number, b: string, c: boolean, d: any): void {
+export function multipleParams(a: number, b: string, c: boolean, d: any): void {
 }
 ";
 
@@ -137,11 +137,84 @@ export async function exportedAsync(): Promise<void> {
         // Act
         var functions = MethodExtractor.Extract(code);
 
-        // Assert
-        Assert.Equal(3, functions.Count());
+        // Assert - 应该只提取导出的函数
+        Assert.Equal(2, functions.Count());
         Assert.Contains(functions, f => f.Name == "exportedFunction");
-        Assert.Contains(functions, f => f.Name == "nonExportedFunction");
         Assert.Contains(functions, f => f.Name == "exportedAsync");
+        // 不应该包含非导出函数
+        Assert.DoesNotContain(functions, f => f.Name == "nonExportedFunction");
     }
 
+    [Fact]
+    public void Extract_NonExportedFunctions_AreIgnored()
+        {
+            // Arrange
+            var code = @"
+    function privateFunction(): void {
+        console.log('This should not be extracted');
+    }
+    
+    async function privateAsyncFunction(): Promise<string> {
+        return 'private';
+    }
+    
+    const privateArrowFunction = (x: number) => x * 2;
+    
+    const privateFunctionExpression = function() {
+        return 'private';
+    };
+    
+    // 只有这个函数应该被提取
+    export function publicFunction(): string {
+        return 'public';
+    }
+    ";
+    
+            // Act
+            var functions = MethodExtractor.Extract(code);
+    
+            // Assert - 应该只提取导出的函数
+            Assert.Single(functions);
+            Assert.Contains(functions, f => f.Name == "publicFunction");
+            
+            // 确保非导出函数都被忽略了
+            Assert.DoesNotContain(functions, f => f.Name == "privateFunction");
+            Assert.DoesNotContain(functions, f => f.Name == "privateAsyncFunction");
+            Assert.DoesNotContain(functions, f => f.Name == "privateArrowFunction");
+            Assert.DoesNotContain(functions, f => f.Name == "privateFunctionExpression");
+        }
+    
+        [Fact]
+        public void Extract_MixedExportedAndArrowFunctions_ExtractsOnlyExported()
+        {
+            // Arrange
+            var code = @"
+    export const exportedArrowFunction = (x: number): number => x * 2;
+    
+    export const exportedAsyncArrowFunction = async (id: number): Promise<string> => {
+        return `ID: ${id}`;
+    };
+    
+    export const exportedFunctionExpression = function(name: string): string {
+        return `Hello ${name}`;
+    };
+    
+    // 这些不应该被提取
+    const privateArrowFunction = (x: number) => x / 2;
+    const privateFunctionExpression = function() { return 'private'; };
+    ";
+    
+            // Act
+            var functions = MethodExtractor.Extract(code);
+    
+            // Assert - 应该只提取导出的函数
+            Assert.Equal(3, functions.Count());
+            Assert.Contains(functions, f => f.Name == "exportedArrowFunction");
+            Assert.Contains(functions, f => f.Name == "exportedAsyncArrowFunction");
+            Assert.Contains(functions, f => f.Name == "exportedFunctionExpression");
+            
+            // 确保私有函数被忽略
+            Assert.DoesNotContain(functions, f => f.Name == "privateArrowFunction");
+            Assert.DoesNotContain(functions, f => f.Name == "privateFunctionExpression");
+        }
 }

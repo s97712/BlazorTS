@@ -41,14 +41,10 @@ public sealed class TSAnalyzer : IDisposable
 
     private void TraverseNode(TSNode node, string code, List<TSFunction> functions)
     {
-        // 检查当前节点是否是函数声明
-        if (node.type() == "function_declaration" || node.type() == "method_definition")
+        // 只处理 export_statement 节点
+        if (node.type() == "export_statement")
         {
-            var function = ParseFunctionFromNode(node, code);
-            if (function != null)
-            {
-                functions.Add(function);
-            }
+            ProcessExportStatement(node, code, functions);
         }
 
         // 递归遍历子节点
@@ -59,6 +55,167 @@ public sealed class TSAnalyzer : IDisposable
             {
                 TraverseNode(childNode, code, functions);
             }
+        }
+    }
+
+    private void ProcessExportStatement(TSNode exportNode, string code, List<TSFunction> functions)
+    {
+        // 获取导出声明
+        var declaration = exportNode.child_by_field_name("declaration");
+        if (declaration.is_null())
+        {
+            // 尝试通过遍历子节点找到声明
+            for (uint i = 0; i < exportNode.child_count(); i++)
+            {
+                var child = exportNode.child(i);
+                if (!child.is_null() && child.type() != "export")
+                {
+                    declaration = child;
+                    break;
+                }
+            }
+        }
+
+        if (!declaration.is_null())
+        {
+            if (declaration.type() == "function_declaration")
+            {
+                // 处理 export function
+                var function = ParseFunctionFromNode(declaration, code);
+                if (function != null)
+                {
+                    functions.Add(function);
+                }
+            }
+            else if (declaration.type() == "lexical_declaration")
+            {
+                // 处理 export const/let/var = ... 形式
+                ProcessLexicalDeclaration(declaration, code, functions);
+            }
+        }
+    }
+
+    private void ProcessLexicalDeclaration(TSNode lexicalNode, string code, List<TSFunction> functions)
+    {
+        // 遍历变量声明
+        for (uint i = 0; i < lexicalNode.child_count(); i++)
+        {
+            var child = lexicalNode.child(i);
+            if (!child.is_null() && child.type() == "variable_declarator")
+            {
+                var function = ParseVariableDeclarator(child, code);
+                if (function != null)
+                {
+                    functions.Add(function);
+                }
+            }
+        }
+    }
+
+    private TSFunction? ParseVariableDeclarator(TSNode declaratorNode, string code)
+    {
+        try
+        {
+            var nameNode = declaratorNode.child_by_field_name("name");
+            var valueNode = declaratorNode.child_by_field_name("value");
+
+            if (nameNode.is_null() || valueNode.is_null())
+                return null;
+
+            var functionName = nameNode.text(code);
+            var valueType = valueNode.type();
+
+            // 处理箭头函数: const func = (params) => { ... }
+            if (valueType == "arrow_function")
+            {
+                return ParseArrowFunction(valueNode, code, functionName);
+            }
+            // 处理函数表达式: const func = function(params) { ... }
+            else if (valueType == "function_expression")
+            {
+                var function = ParseFunctionFromNode(valueNode, code);
+                if (function != null)
+                {
+                    function.Name = functionName; // 覆盖函数名
+                }
+                return function;
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private TSFunction? ParseArrowFunction(TSNode arrowNode, string code, string functionName)
+    {
+        try
+        {
+            var function = new TSFunction { Name = functionName };
+
+            // 检查是否为异步函数 - 对于箭头函数，async 关键字在父节点
+            var parent = arrowNode.parent();
+            if (!parent.is_null())
+            {
+                for (uint i = 0; i < parent.child_count(); i++)
+                {
+                    var child = parent.child(i);
+                    if (child.type() == "async")
+                    {
+                        function.IsAsync = true;
+                        break;
+                    }
+                }
+            }
+
+            // 获取参数
+            var parametersNode = arrowNode.child_by_field_name("parameters");
+            if (!parametersNode.is_null())
+            {
+                function.Parameters = ParseParameters(parametersNode, code);
+            }
+            else
+            {
+                // 单个参数，没有括号的情况：x => x * 2
+                var parameterNode = arrowNode.child_by_field_name("parameter");
+                if (!parameterNode.is_null())
+                {
+                    var parameter = new TSParameter
+                    {
+                        Name = parameterNode.text(code),
+                        Type = "any",
+                        IsOptional = false
+                    };
+                    function.Parameters = new List<TSParameter> { parameter };
+                }
+            }
+
+            // 获取返回类型（如果有类型注解）
+            var returnTypeNode = arrowNode.child_by_field_name("return_type");
+            if (!returnTypeNode.is_null())
+            {
+                for (uint i = 0; i < returnTypeNode.child_count(); i++)
+                {
+                    var child = returnTypeNode.child(i);
+                    if (child.type() != ":")
+                    {
+                        function.ReturnType = child.text(code).Trim();
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                function.ReturnType = "any";
+            }
+
+            return function;
+        }
+        catch
+        {
+            return null;
         }
     }
 

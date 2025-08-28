@@ -11,7 +11,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_SimpleFunction_ReturnsCorrectFunction()
     {
         // Arrange
-        var code = "function greet(name: string): string { return `Hello, ${name}!`; }";
+        var code = "export function greet(name: string): string { return `Hello, ${name}!`; }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -26,7 +26,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_AsyncFunction_ReturnsAsyncFunction()
     {
         // Arrange
-        var code = "async function fetchData(url: string): Promise<any> { return fetch(url); }";
+        var code = "export async function fetchData(url: string): Promise<any> { return fetch(url); }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -41,7 +41,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_MultipleParameters_ParsesAllParameters()
     {
         // Arrange
-        var code = "function add(a: number, b: number, c: number): number { return a + b + c; }";
+        var code = "export function add(a: number, b: number, c: number): number { return a + b + c; }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -58,7 +58,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_VoidFunction_ReturnsVoidType()
     {
         // Arrange
-        var code = "function initialize(): void { console.log('init'); }";
+        var code = "export function initialize(): void { console.log('init'); }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -72,7 +72,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_FunctionWithoutReturnType_DefaultsToVoid()
     {
         // Arrange
-        var code = "function test() { console.log('test'); }";
+        var code = "export function test() { console.log('test'); }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -86,7 +86,7 @@ public class TSAnalyzerTests : TestBase, IDisposable
     public void ExtractFunctions_OptionalParameters_ParsesOptionalFlags()
     {
         // Arrange
-        var code = "function process(data: string, timeout?: number): boolean { return true; }";
+        var code = "export function process(data: string, timeout?: number): boolean { return true; }";
 
         // Act
         var functions = _analyzer.ExtractFunctions(code);
@@ -103,9 +103,9 @@ public class TSAnalyzerTests : TestBase, IDisposable
     {
         // Arrange
         var code = @"
-function first(): string { return 'first'; }
-function second(x: number): number { return x * 2; }
-function third(): void { }
+export function first(): string { return 'first'; }
+export function second(x: number): number { return x * 2; }
+export function third(): void { }
 ";
 
         // Act
@@ -151,10 +151,10 @@ function third(): void { }
     {
         // Arrange
         var code = @"
-function testString(s: string): string { return s; }
-function testNumber(n: number): number { return n; }
-function testBoolean(b: boolean): boolean { return b; }
-function testAny(a: any): any { return a; }
+export function testString(s: string): string { return s; }
+export function testNumber(n: number): number { return n; }
+export function testBoolean(b: boolean): boolean { return b; }
+export function testAny(a: any): any { return a; }
 ";
 
         // Act
