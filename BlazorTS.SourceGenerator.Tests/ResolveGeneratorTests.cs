@@ -143,4 +143,5 @@ function processData(
         Assert.Contains("await invoker.InvokeAsync<object?>", wrapperCode);
         Assert.DoesNotContain("Task<void>", wrapperCode);
     }
+
 }
