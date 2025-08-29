@@ -54,7 +54,7 @@ public class ResolveGeneratorTests : TestBase
         
         // 验证包装类结构
         Assert.Contains("public partial class Demo", wrapperCode);
-        Assert.Contains("public class TSInterop(InvokeWrapper invoker)", wrapperCode);
+        Assert.Contains("public class TSInterop(ScriptBridge invoker)", wrapperCode);
         Assert.Contains("public async Task<string> greet(string name)", wrapperCode);
         Assert.Contains("return await invoker.InvokeAsync<string>", wrapperCode);
         Assert.Contains("new object?[] { name }", wrapperCode);
@@ -81,7 +81,7 @@ public class ResolveGeneratorTests : TestBase
         // 验证服务注册
         Assert.Contains("namespace BlazorTS.SourceGenerator.Extensions", serviceCode);
         Assert.Contains("public static class ServiceCollectionExtensions", serviceCode);
-        Assert.Contains("AddJsInvokeServices", serviceCode);
+        Assert.Contains("AddBlazorTSScripts", serviceCode);
         Assert.Contains("Utils.TSInterop", serviceCode);
         Assert.Contains("Api.TSInterop", serviceCode);
     }

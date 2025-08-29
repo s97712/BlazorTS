@@ -80,8 +80,10 @@ export function IncrementCount(count: number): number {
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
 
-builder.Services.AddScoped<BlazorTS.InvokeWrapper>();
-builder.Services.AddJsInvokeServices();  // 自动注册所有TSInterop服务
+builder.Services.AddScoped<BlazorTS.ScriptBridge>();
+builder.Services.AddBlazorTSScripts();  // 自动注册所有TSInterop服务
+
+
 ```
 
 ### 6. 在组件中使用
@@ -104,7 +106,7 @@ builder.Services.AddJsInvokeServices();  // 自动注册所有TSInterop服务
     private async Task HandleClick()
     {
         // 调用 TypeScript 函数进行计数
-        currentCount = await TypeScriptJS.IncrementCount(currentCount);
+        currentCount = await Scripts.IncrementCount(currentCount);
     }
 }
 ```

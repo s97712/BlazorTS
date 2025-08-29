@@ -172,11 +172,11 @@ namespace {ns};
 
 public partial class {className}
 {{
-    [Inject] public TSInterop TypeScriptJS {{ get; set; }} = null!;
+    [Inject] public TSInterop Scripts {{ get; set; }} = null!;
 
-    public class TSInterop(InvokeWrapper invoker)
+    public class TSInterop(ScriptBridge invoker)
     {{
-        private string url = InvokeWrapper.ResolveNS(typeof({fullName}));
+        private string url = ScriptBridge.ResolveNS(typeof({fullName}));
 
         {methods.Select(GenerateMethod).ToDelimitedString("\n")}
 
@@ -237,7 +237,7 @@ namespace BlazorTS.SourceGenerator.Extensions
 {{
     public static class ServiceCollectionExtensions
     {{
-        public static IServiceCollection AddJsInvokeServices(this IServiceCollection services)
+        public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
         {{
             {names
                 .Select(name => $@"services.AddScoped<{name}.TSInterop>();").ToDelimitedString("\n")}
