@@ -172,7 +172,7 @@ namespace {ns};
 
 public partial class {className}
 {{
-    [Inject] public TSInterop TypeScriptJS {{ get; set; }} = null!;
+    [Inject] public TSInterop Scripts {{ get; set; }} = null!;
 
     public class TSInterop(InvokeWrapper invoker)
     {{

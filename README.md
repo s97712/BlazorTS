@@ -104,7 +104,7 @@ builder.Services.AddJsInvokeServices();  // 自动注册所有TSInterop服务
     private async Task HandleClick()
     {
         // 调用 TypeScript 函数进行计数
-        currentCount = await TypeScriptJS.IncrementCount(currentCount);
+        currentCount = await Scripts.IncrementCount(currentCount);
     }
 }
 ```
