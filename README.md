@@ -1,107 +1,120 @@
 # BlazorTS
 
-基于 TypeScriptParser 和 Tree-sitter 的 Blazor TypeScript 互操作框架。
+🚀 让 Blazor 与 TypeScript 无缝协作的框架
 
-## 工作原理
+BlazorTS 是一个基于源代码生成的框架，使用 **Tree-sitter 语法树解析技术** 分析 TypeScript 代码，让你可以在 Blazor 应用中直接调用 TypeScript 函数，无需手动编写 JavaScript 互操作代码。
 
-1. **编译时分析**: 源代码生成器扫描`.ts`文件，使用TypeScriptParser解析函数声明
-2. **代码生成**: 为每个.ts文件生成对应的partial class + TSInterop嵌套类
-3. **服务注册**: 自动生成`AddJsInvokeServices()`扩展方法注册所有TSInterop服务
+## ✨ 特性
 
-## 使用步骤
+- 🔄 **自动生成**: 基于 Tree-sitter 语法树解析，从 TypeScript 文件自动生成 C# 包装代码
+- 🎯 **类型安全**: 完整的类型映射和编译时检查
+- 🚀 **零配置**: 最小化配置，开箱即用
+- 🔧 **智能依赖**: 自动解析和注册服务
+- 🌳 **精确解析**: 使用 Tree-sitter 精确解析 TypeScript 语法结构
 
-### 1. 创建TypeScript文件
-```typescript
-// TestFunctions.ts
-export async function hello(name: string): Promise<string> {
-    return `Hello, ${name}!`;
-}
+## 📦 快速开始
 
-export function add(a: number, b: number): number {
-    return a + b;
-}
+### 1. 安装包
 
-export function greet(name: string, age?: number): void {
-    console.log(`Hi ${name}, you are ${age || 'unknown'} years old`);
-}
-```
-
-### 2. 安装包
 ```bash
-# 安装BlazorTS源代码生成器
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
+dotnet add package Microsoft.TypeScript.MSBuild
 ```
 
+### 2. 配置项目文件
+
+在 `.csproj` 文件中添加以下配置：
+
 ```xml
-<!-- 在项目文件中添加TypeScript文件为附加文件 -->
+<ItemGroup>
+  <PackageReference Include="BlazorTS" Version="1.0.5.7" />
+  <PackageReference Include="BlazorTS.SourceGenerator" Version="1.0.5.7" OutputItemType="Analyzer" ReferenceOutputAssembly="true">
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PrivateAssets>all</PrivateAssets>
+  </PackageReference>
+  <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.8.3">
+    <PrivateAssets>all</PrivateAssets>
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+  </PackageReference>
+</ItemGroup>
+
+<!-- 添加 TypeScript 文件为附加文件 -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.ts" />
 </ItemGroup>
 ```
 
-### 3. 注册服务
+### 3. 创建 tsconfig.json
+
+在项目根目录创建 `tsconfig.json` 配置文件：
+
+```json
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "target": "es2015",
+    "baseUrl": "./",
+    "outDir": "wwwroot/js"
+  },
+  "include": [
+    "**/*"
+  ]
+}
+```
+
+### 4. 创建 TypeScript 文件
+
+```typescript
+// Components/Pages/Counter.ts
+export function IncrementCount(count: number): number {
+    return count + 1;
+}
+```
+
+### 5. 注册服务
+
 ```csharp
-// Program.cs 
+// Program.cs
 using BlazorTS.SourceGenerator.Extensions;
 
+builder.Services.AddScoped<BlazorTS.InvokeWrapper>();
 builder.Services.AddJsInvokeServices();  // 自动注册所有TSInterop服务
 ```
 
-### 4. 在组件中使用
-```csharp
-@inject TestFunctions.TSInterop TestJS
+### 6. 在组件中使用
 
-<button @onclick="CallFunctions">测试</button>
+```csharp
+@page "/counter"
+@rendermode InteractiveServer
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="HandleClick">点击增加</button>
 
 @code {
-    private async Task CallFunctions()
+    private int currentCount = 0;
+
+    private async Task HandleClick()
     {
-        // 所有调用都返回Task<T>或Task
-        var message = await TestJS.hello("World");        // Task<string>
-        var sum = await TestJS.add(10, 20);              // Task<double>
-        await TestJS.greet("张三", 25);                   // Task（void函数）
+        // 调用 TypeScript 函数进行计数
+        currentCount = await TypeScriptJS.IncrementCount(currentCount);
     }
 }
 ```
 
-## 生成的代码结构
+就这么简单！BlazorTS 会自动为你的 TypeScript 文件生成对应的 C# 包装类。
 
-```csharp
-// 自动生成: TestFunctions.ts.module.g.cs
-public partial class TestFunctions
-{
-    [Inject] public TSInterop TypeScriptJS { get; set; } = null!;
+## 🔧 支持的类型
 
-    public class TSInterop(InvokeWrapper invoker)
-    {
-        private string url = InvokeWrapper.ResolveNS(typeof(TestFunctions));
-
-        public async Task<string> hello(string name)
-        {
-            return await invoker.InvokeAsync<string>(url, "hello",
-                new object?[] { name });
-        }
-
-        public async Task<double> add(double a, double b)
-        {
-            return await invoker.InvokeAsync<double>(url, "add", 
-                new object?[] { a, b });
-        }
-
-        public async Task greet(string name, double age = default)
-        {
-            await invoker.InvokeAsync<object?>(url, "greet",
-                new object?[] { name, age });
-        }
-    }
-}
-```
-
-## 类型映射
-
-| TypeScript | C# 参数类型 | C# 返回类型 |
-|------------|-------------|-------------|
+| TypeScript | C# 参数 | 返回类型 |
+|------------|---------|----------|
 | `string` | `string` | `Task<string>` |
 | `number` | `double` | `Task<double>` |
 | `boolean` | `bool` | `Task<bool>` |
@@ -109,43 +122,16 @@ public partial class TestFunctions
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
 
-## 构建和测试
+## 📖 更多文档
 
-```bash
+- [开发指南](docs/开发指南.md) - 详细的开发和构建说明
+- [支持的 TypeScript 语法](docs/支持的TypeScript语法.md) - 完整的语法支持列表
+- [DLL 路径解析机制](docs/dll路径解析机制文档.md) - 高级配置选项
 
-### 清理缓存
-dotnet clean
-dotnet nuget locals all --clear
-rm -rf **/bin **/obj
-rm -rf ./artifacts
+## 🤝 贡献
 
-# or trash
-dotnet clean
-dotnet nuget locals all --clear
-trash -f **/bin **/obj
-trash -f ./artifacts/*.nupkg
+欢迎提交 Issue 和 Pull Request！
 
+## 📄 许可证
 
-### 打包测试
-dotnet test BlazorTS.SourceGenerator.Tests/
-dotnet test
-dotnet pack --configuration Release --output ./artifacts/
-dotnet build-server shutdown
-dotnet add package  BlazorTS.SourceGenerator --version 0.1.0-dev --project BlazorTS.TestPackage/
-BLAZORTS_LOG_ENABLED=true dotnet test BlazorTS.TestPackage/
-```
-
-## CI/CD流程
-
-### 开发流程
-1. 创建功能分支
-2. 提交Pull Request → 自动构建测试
-3. 合并到main分支
-
-### 发布流程
-1. 创建版本标签：
-```bash
-(VERSION=v1.0.5 && git tag $VERSION && git push origin $VERSION)
-```
-2. 自动构建测试发布到NuGet.org
-3. 版本号格式：`1.0.0.{构建号}`
+MIT License
