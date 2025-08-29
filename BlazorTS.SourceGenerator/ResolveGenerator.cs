@@ -176,7 +176,7 @@ public partial class {className}
 
     public class TSInterop(ScriptBridge invoker)
     {{
-        private string url = ScriptBridge.ResolveNS(typeof({fullName}));
+        private readonly string url = ScriptBridge.ResolveNS(typeof({fullName}));
 
         {methods.Select(GenerateMethod).ToDelimitedString("\n")}
 
