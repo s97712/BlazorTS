@@ -114,14 +114,16 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
       shell: bash
       
-    - name: Restore Dependencies
-      run: dotnet restore BlazorTS.TestPackage/
-      shell: bash
-      
     - name: Update Package Reference
       run: |
+        dotnet remove BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS
         dotnet remove BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS.SourceGenerator
+        dotnet add BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS --version $VERSION --source ./artifacts
         dotnet add BlazorTS.TestPackage/BlazorTS.TestPackage.csproj package BlazorTS.SourceGenerator --version $VERSION --source ./artifacts
+      shell: bash
+      
+    - name: Restore Dependencies
+      run: dotnet restore BlazorTS.TestPackage/
       shell: bash
       
     - name: Test Package on ${{ matrix.rid }}
