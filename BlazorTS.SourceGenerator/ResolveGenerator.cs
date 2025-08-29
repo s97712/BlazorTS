@@ -174,9 +174,9 @@ public partial class {className}
 {{
     [Inject] public TSInterop Scripts {{ get; set; }} = null!;
 
-    public class TSInterop(InvokeWrapper invoker)
+    public class TSInterop(ScriptBridge invoker)
     {{
-        private string url = InvokeWrapper.ResolveNS(typeof({fullName}));
+        private string url = ScriptBridge.ResolveNS(typeof({fullName}));
 
         {methods.Select(GenerateMethod).ToDelimitedString("\n")}
 

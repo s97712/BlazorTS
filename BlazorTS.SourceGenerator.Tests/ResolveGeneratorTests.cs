@@ -54,7 +54,7 @@ public class ResolveGeneratorTests : TestBase
         
         // 验证包装类结构
         Assert.Contains("public partial class Demo", wrapperCode);
-        Assert.Contains("public class TSInterop(InvokeWrapper invoker)", wrapperCode);
+        Assert.Contains("public class TSInterop(ScriptBridge invoker)", wrapperCode);
         Assert.Contains("public async Task<string> greet(string name)", wrapperCode);
         Assert.Contains("return await invoker.InvokeAsync<string>", wrapperCode);
         Assert.Contains("new object?[] { name }", wrapperCode);

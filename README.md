@@ -80,8 +80,9 @@ export function IncrementCount(count: number): number {
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
 
-builder.Services.AddScoped<BlazorTS.InvokeWrapper>();
+builder.Services.AddScoped<BlazorTS.ScriptBridge>();
 builder.Services.AddJsInvokeServices();  // 自动注册所有TSInterop服务
+
 ```
 
 ### 6. 在组件中使用
