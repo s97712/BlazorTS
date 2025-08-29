@@ -1,30 +1,40 @@
 # BlazorTS
 
-🚀 让 Blazor 与 TypeScript 无缝协作的框架
+🚀 A tool for seamless Blazor-TypeScript integration
 
-BlazorTS 是一个基于源代码生成的框架，使用 **Tree-sitter 语法树解析技术** 分析 TypeScript 代码，让你可以在 Blazor 应用中直接调用 TypeScript 函数，无需手动编写 JavaScript 互操作代码。
+<div align="center">
 
-## ✨ 特性
+[English](README.md) | [中文](README_CN.md) | [🏠 GitHub](https://github.com/s97712/BlazorTS)
 
-- 🔄 **自动生成**: 基于 Tree-sitter 语法树解析，从 TypeScript 文件自动生成 C# 包装代码
-- 🎯 **类型安全**: 完整的类型映射和编译时检查
-- 🚀 **零配置**: 最小化配置，开箱即用
-- 🔧 **智能依赖**: 自动解析和注册服务
-- 🌳 **精确解析**: 使用 Tree-sitter 精确解析 TypeScript 语法结构
+</div>
 
-## 📦 快速开始
+---
 
-### 1. 安装包
+BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsing** to analyze TypeScript code, automatically generating C# wrapper code that enables you to call TypeScript functions directly in Blazor applications without manually writing JavaScript interop code.
 
-```bash
-dotnet add package BlazorTS
-dotnet add package BlazorTS.SourceGenerator
-dotnet add package Microsoft.TypeScript.MSBuild
-```
+## ✨ Features
 
-### 2. 配置项目文件
+- 🔄 **Auto Generation**: Uses Tree-sitter syntax tree parsing to analyze TypeScript code and automatically generates C# wrapper code
+- 🎯 **Type Safety**: Complete type mapping and compile-time checking
+- 🚀 **Zero Configuration**: Minimal configuration, works out of the box
+- 🔧 **Smart Dependencies**: Automatic service resolution and registration
+- 🌳 **Precise Parsing**: Uses Tree-sitter for accurate TypeScript syntax structure parsing
 
-在 `.csproj` 文件中添加以下配置：
+## 📦 Installation
+
+**Core Libraries**
+
+| NuGet Package | NuGet Version | Description |
+|--|--|--|
+| [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.svg?style=flat)](https://www.nuget.org/packages/BlazorTS) | Core runtime library |
+| [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | Source generator library |
+| [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript compilation support |
+
+## 🚀 Quick Start
+
+### 1. Configure Project File
+
+Add the following configuration to your `.csproj` file:
 
 ```xml
 <ItemGroup>
@@ -39,15 +49,15 @@ dotnet add package Microsoft.TypeScript.MSBuild
   </PackageReference>
 </ItemGroup>
 
-<!-- 添加 TypeScript 文件为附加文件 -->
+<!-- Add TypeScript files as additional files -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.ts" />
 </ItemGroup>
 ```
 
-### 3. 创建 tsconfig.json
+### 2. Create tsconfig.json
 
-在项目根目录创建 `tsconfig.json` 配置文件：
+Create a `tsconfig.json` configuration file in your project root:
 
 ```json
 {
@@ -65,7 +75,7 @@ dotnet add package Microsoft.TypeScript.MSBuild
 }
 ```
 
-### 4. 创建 TypeScript 文件
+### 3. Create TypeScript File
 
 ```typescript
 // Components/Pages/Counter.ts
@@ -74,19 +84,19 @@ export function IncrementCount(count: number): number {
 }
 ```
 
-### 5. 注册服务
+### 4. Register Services
 
 ```csharp
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
 
 builder.Services.AddScoped<BlazorTS.ScriptBridge>();
-builder.Services.AddBlazorTSScripts();  // 自动注册所有TSInterop服务
+builder.Services.AddBlazorTSScripts();  // Auto-register all TSInterop services
 
 
 ```
 
-### 6. 在组件中使用
+### 5. Use in Components
 
 ```csharp
 @page "/counter"
@@ -98,25 +108,25 @@ builder.Services.AddBlazorTSScripts();  // 自动注册所有TSInterop服务
 
 <p role="status">Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="HandleClick">点击增加</button>
+<button class="btn btn-primary" @onclick="HandleClick">Click to Increment</button>
 
 @code {
     private int currentCount = 0;
 
     private async Task HandleClick()
     {
-        // 调用 TypeScript 函数进行计数
+        // Call TypeScript function to increment count
         currentCount = await Scripts.IncrementCount(currentCount);
     }
 }
 ```
 
-就这么简单！BlazorTS 会自动为你的 TypeScript 文件生成对应的 C# 包装类。
+That's it! BlazorTS will automatically generate corresponding C# wrapper classes for your TypeScript files.
 
-## 🔧 支持的类型
+## 🔧 Supported Types
 
-| TypeScript | C# 参数 | 返回类型 |
-|------------|---------|----------|
+| TypeScript | C# Parameter | Return Type |
+|------------|-------------|------------|
 | `string` | `string` | `Task<string>` |
 | `number` | `double` | `Task<double>` |
 | `boolean` | `bool` | `Task<bool>` |
@@ -124,16 +134,19 @@ builder.Services.AddBlazorTSScripts();  // 自动注册所有TSInterop服务
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
 
-## 📖 更多文档
+## 📖 Documentation
 
-- [开发指南](docs/开发指南.md) - 详细的开发和构建说明
-- [支持的 TypeScript 语法](docs/支持的TypeScript语法.md) - 完整的语法支持列表
-- [DLL 路径解析机制](docs/dll路径解析机制文档.md) - 高级配置选项
+- [Development Guide (Chinese)](docs/开发指南.md) - Detailed development and build instructions
+- [Supported TypeScript Syntax (Chinese)](docs/支持的TypeScript语法.md) - Complete syntax support list
+- [DLL Path Resolution Mechanism (Chinese)](docs/dll路径解析机制文档.md) - Advanced configuration options
+- [中文说明](README_CN.md) - Chinese version of this README
 
-## 🤝 贡献
+> **Note**: Documentation is currently available in Chinese. English translations coming soon.
 
-欢迎提交 Issue 和 Pull Request！
+## 🤝 Contributing
 
-## 📄 许可证
+Issues and Pull Requests are welcome!
+
+## 📄 License
 
 MIT License
