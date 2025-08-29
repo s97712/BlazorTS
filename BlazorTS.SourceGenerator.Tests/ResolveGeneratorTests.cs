@@ -81,7 +81,7 @@ public class ResolveGeneratorTests : TestBase
         // 验证服务注册
         Assert.Contains("namespace BlazorTS.SourceGenerator.Extensions", serviceCode);
         Assert.Contains("public static class ServiceCollectionExtensions", serviceCode);
-        Assert.Contains("AddJsInvokeServices", serviceCode);
+        Assert.Contains("AddBlazorTSScripts", serviceCode);
         Assert.Contains("Utils.TSInterop", serviceCode);
         Assert.Contains("Api.TSInterop", serviceCode);
     }

@@ -237,7 +237,7 @@ namespace BlazorTS.SourceGenerator.Extensions
 {{
     public static class ServiceCollectionExtensions
     {{
-        public static IServiceCollection AddJsInvokeServices(this IServiceCollection services)
+        public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
         {{
             {names
                 .Select(name => $@"services.AddScoped<{name}.TSInterop>();").ToDelimitedString("\n")}
