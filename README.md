@@ -30,32 +30,38 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 | [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | Source generator library |
 | [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript compilation support |
 
-## 🚀 Quick Start
+### Installation and Configuration
 
-### 1. Configure Project File
+**1. Install NuGet Packages**
 
-Add the following configuration to your `.csproj` file:
+**Install via .NET CLI**
+```bash
+dotnet add package BlazorTS
+dotnet add package BlazorTS.SourceGenerator
+dotnet add package Microsoft.TypeScript.MSBuild
+```
+
+**Install via Package Manager Console**
+```powershell
+Install-Package BlazorTS
+Install-Package BlazorTS.SourceGenerator
+Install-Package Microsoft.TypeScript.MSBuild
+```
+
+**2. Configure Project File**
+
+Add the following to your `.csproj` file to ensure TypeScript files are processed correctly:
 
 ```xml
-<ItemGroup>
-  <PackageReference Include="BlazorTS" Version="1.0.5.7" />
-  <PackageReference Include="BlazorTS.SourceGenerator" Version="1.0.5.7" OutputItemType="Analyzer" ReferenceOutputAssembly="true">
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    <PrivateAssets>all</PrivateAssets>
-  </PackageReference>
-  <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.8.3">
-    <PrivateAssets>all</PrivateAssets>
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-  </PackageReference>
-</ItemGroup>
-
 <!-- Add TypeScript files as additional files -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.ts" />
 </ItemGroup>
 ```
 
-### 2. Create tsconfig.json
+## 🚀 Quick Start
+
+### 1. Create tsconfig.json
 
 Create a `tsconfig.json` configuration file in your project root:
 

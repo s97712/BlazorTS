@@ -20,7 +20,7 @@ BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析**
 - 🔧 **智能依赖**: 自动解析和注册服务
 - 🌳 **精确解析**: 使用 Tree-sitter 精确解析 TypeScript 语法结构
 
-## 📦 安装
+## � 安装
 
 **核心库**
 
@@ -30,32 +30,38 @@ BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析**
 | [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | 源代码生成器库 |
 | [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript 编译支持 |
 
-## 🚀 快速开始
+### 安装与配置
 
-### 1. 配置项目文件
+**1. 安装 NuGet 包**
 
-在 `.csproj` 文件中添加以下配置：
+**使用 .NET CLI 安装**
+```bash
+dotnet add package BlazorTS
+dotnet add package BlazorTS.SourceGenerator
+dotnet add package Microsoft.TypeScript.MSBuild
+```
+
+**使用 Package Manager Console 安装**
+```powershell
+Install-Package BlazorTS
+Install-Package BlazorTS.SourceGenerator
+Install-Package Microsoft.TypeScript.MSBuild
+```
+
+**2. 配置项目文件**
+
+在 `.csproj` 文件中添加以下配置，以确保 TypeScript 文件被正确处理：
 
 ```xml
-<ItemGroup>
-  <PackageReference Include="BlazorTS" Version="1.0.5.7" />
-  <PackageReference Include="BlazorTS.SourceGenerator" Version="1.0.5.7" OutputItemType="Analyzer" ReferenceOutputAssembly="true">
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    <PrivateAssets>all</PrivateAssets>
-  </PackageReference>
-  <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.8.3">
-    <PrivateAssets>all</PrivateAssets>
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-  </PackageReference>
-</ItemGroup>
-
 <!-- 添加 TypeScript 文件为附加文件 -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.ts" />
 </ItemGroup>
 ```
 
-### 2. 创建 tsconfig.json
+## 🚀 快速开始
+
+### 1. 创建 tsconfig.json
 
 在项目根目录创建 `tsconfig.json` 配置文件：
 
