@@ -38,15 +38,23 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 ```bash
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
-dotnet add package Microsoft.TypeScript.MSBuild
+dotnet add package Microsoft.TypeScript.MSBuild # (optional)
 ```
 
 **Install via Package Manager Console**
 ```powershell
 Install-Package BlazorTS
 Install-Package BlazorTS.SourceGenerator
-Install-Package Microsoft.TypeScript.MSBuild
+Install-Package Microsoft.TypeScript.MSBuild # (optional)
 ```
+
+> **Alternative:** If you prefer not to use `Microsoft.TypeScript.MSBuild`, you can manually add a `Target` to your `.csproj` file to invoke the TypeScript compiler (`npx tsc`).
+>
+> ```xml
+> <Target Name="CompileTypeScript" BeforeTargets="Build">
+>   <Exec Command="npx tsc" />
+> </Target>
+> ```
 
 **2. Configure Project File**
 

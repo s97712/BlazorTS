@@ -38,15 +38,23 @@ BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析**
 ```bash
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
-dotnet add package Microsoft.TypeScript.MSBuild
+dotnet add package Microsoft.TypeScript.MSBuild # (可选)
 ```
 
 **使用 Package Manager Console 安装**
 ```powershell
 Install-Package BlazorTS
 Install-Package BlazorTS.SourceGenerator
-Install-Package Microsoft.TypeScript.MSBuild
+Install-Package Microsoft.TypeScript.MSBuild # (可选)
 ```
+
+> **替代方案：** 如果不使用 `Microsoft.TypeScript.MSBuild`，可手动在 `.csproj` 中添加 `Target` 来调用 `npx tsc` 编译。
+>
+> ```xml
+> <Target Name="CompileTypeScript" BeforeTargets="Build">
+>   <Exec Command="npx tsc" />
+> </Target>
+> ```
 
 **2. 配置项目文件**
 
@@ -120,7 +128,7 @@ export function IncrementCount(count: number): number {
 ```
 > 这样配置后，`Components/Pages/Counter.ts` 将被编译到 `wwwroot/js/Components/Pages/Counter.js`。
 
-### 3. 注册服务
+### 4. 注册服务
 
 在 `Program.cs` 中注册 BlazorTS 服务。
 
@@ -133,7 +141,7 @@ builder.Services.AddScoped<BlazorTS.ScriptBridge>();
 builder.Services.AddBlazorTSScripts();
 ```
 
-### 4. 运行并查看结果
+### 5. 运行并查看结果
 
 现在，运行你的 Blazor 应用。当你点击按钮时：
 1.  `Counter.razor` 中的 `HandleClick` 方法被调用。
