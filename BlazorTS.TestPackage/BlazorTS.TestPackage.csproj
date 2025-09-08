@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="**/*.ts" />
+    <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
   </ItemGroup>
 
 </Project>

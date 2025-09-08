@@ -53,9 +53,9 @@ Install-Package Microsoft.TypeScript.MSBuild
 在 `.csproj` 文件中添加以下配置，以确保 TypeScript 文件被正确处理：
 
 ```xml
-<!-- 添加 TypeScript 文件为附加文件 -->
+<!-- 添加 TypeScript 文件为附加文件, 并排除 node_modules -->
 <ItemGroup>
-  <AdditionalFiles Include="**/*.ts" />
+  <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
 </ItemGroup>
 ```
 

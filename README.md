@@ -53,9 +53,9 @@ Install-Package Microsoft.TypeScript.MSBuild
 Add the following to your `.csproj` file to ensure TypeScript files are processed correctly:
 
 ```xml
-<!-- Add TypeScript files as additional files -->
+<!-- Add TypeScript files as additional files, excluding node_modules -->
 <ItemGroup>
-  <AdditionalFiles Include="**/*.ts" />
+  <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
 </ItemGroup>
 ```
 
