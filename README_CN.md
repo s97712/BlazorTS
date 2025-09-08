@@ -59,11 +59,47 @@ Install-Package Microsoft.TypeScript.MSBuild
 </ItemGroup>
 ```
 
-## 🚀 快速开始
+## 🚀 快速开始：将 TypeScript 模块绑定到 Razor 组件
 
-### 1. 创建 tsconfig.json
+BlazorTS 的核心优势在于能够将一个 TypeScript 文件无缝地“绑定”到一个 Razor 组件上，作为其专属的脚本模块。这是通过**文件命名约定**和 **partial class** 实现的。
 
-在项目根目录创建 `tsconfig.json` 配置文件：
+### 1. 创建组件及其 TypeScript 模块
+
+假设我们有一个 `Counter` 组件。
+
+**`Components/Pages/Counter.razor`**
+```csharp
+@page "/counter"
+@rendermode InteractiveServer
+
+@* 将这个组件声明为 partial class，以便与生成的代码合并 *@
+@code {
+    public partial class Counter
+    {
+        private int currentCount = 0;
+
+        private async Task HandleClick()
+        {
+            // 直接调用由 BlazorTS 注入的 Scripts 属性
+            currentCount = await Scripts.IncrementCount(currentCount);
+        }
+    }
+}
+```
+
+**`Components/Pages/Counter.ts`**
+创建一个与 Razor 组件同名的 TypeScript 文件。
+```typescript
+// 这个文件是 Counter.razor 组件的专属模块
+export function IncrementCount(count: number): number {
+    console.log("Incrementing count from TypeScript module!");
+    return count + 1;
+}
+```
+
+### 2. 配置 `tsconfig.json`
+
+为了让 Blazor 能够找到编译后的 JS 文件，我们需要配置 `tsconfig.json` 以保留目录结构。
 
 ```json
 {
@@ -72,62 +108,61 @@ Install-Package Microsoft.TypeScript.MSBuild
     "noEmitOnError": true,
     "removeComments": false,
     "target": "es2015",
-    "baseUrl": "./",
+    // "rootDir" 和 "outDir" 配合使用，以在输出目录中保留源目录结构
+    "rootDir": ".",
     "outDir": "wwwroot/js"
   },
   "include": [
-    "**/*"
+    // 仅包含项目中的 .ts 文件
+    "**/*.ts"
   ]
 }
 ```
+> 这样配置后，`Components/Pages/Counter.ts` 将被编译到 `wwwroot/js/Components/Pages/Counter.js`。
 
-### 3. 创建 TypeScript 文件
+### 3. 注册服务
 
-```typescript
-// Components/Pages/Counter.ts
-export function IncrementCount(count: number): number {
-    return count + 1;
-}
-```
-
-### 4. 注册服务
+在 `Program.cs` 中注册 BlazorTS 服务。
 
 ```csharp
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
 
 builder.Services.AddScoped<BlazorTS.ScriptBridge>();
-builder.Services.AddBlazorTSScripts();  // 自动注册所有TSInterop服务
-
-
+// 自动查找并注册所有生成的 TSInterop 服务
+builder.Services.AddBlazorTSScripts();
 ```
 
-### 5. 在组件中使用
+### 4. 运行并查看结果
+
+现在，运行你的 Blazor 应用。当你点击按钮时：
+1.  `Counter.razor` 中的 `HandleClick` 方法被调用。
+2.  它直接访问 `Scripts` 属性，这是 BlazorTS 自动生成的。
+3.  `Scripts.IncrementCount` 调用会执行 `Counter.ts` 中的相应函数。
+
+BlazorTS 在后台为你生成了如下的 `partial class` 代码，并将其与你的 `Counter.razor.cs` 合并：
 
 ```csharp
-@page "/counter"
-@rendermode InteractiveServer
+// BlazorTS 自动生成的代码 (conceptual)
+public partial class Counter
+{
+    // 自动注入 TSInterop 实例
+    [Inject]
+    public TSInterop Scripts { get; set; } = null!;
 
-<PageTitle>Counter</PageTitle>
-
-<h1>Counter</h1>
-
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="HandleClick">点击增加</button>
-
-@code {
-    private int currentCount = 0;
-
-    private async Task HandleClick()
+    // 包装类，负责与 JS 互操作
+    public class TSInterop(ScriptBridge invoker)
     {
-        // 调用 TypeScript 函数进行计数
-        currentCount = await Scripts.IncrementCount(currentCount);
+        // ... 实现细节 ...
+        public async Task<double> IncrementCount(double count)
+        {
+            // ... 调用 JS ...
+        }
     }
 }
 ```
 
-就这么简单！BlazorTS 会自动为你的 TypeScript 文件生成对应的 C# 包装类。
+通过这种方式，BlazorTS 将 TypeScript 的开发体验与 Blazor 组件模型完美融合，实现了真正的模块化。
 
 ## 🔧 支持的类型
 
