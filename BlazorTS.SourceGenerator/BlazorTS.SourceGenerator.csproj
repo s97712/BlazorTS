@@ -34,8 +34,17 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="TypeScriptParser" Version="0.4.2.39" IncludeAssets="all" GeneratePathProperty="true" />
+        <PackageReference Include="TypeScriptParser" Version="0.4.2.39" IncludeAssets="all" GeneratePathProperty="true">
+          <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <TargetPathWithTargetPlatformMoniker Include="$(PkgTypeScriptParser)\lib\netstandard2.1\TypeScriptParser.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Repack native runtimes so consumers don't need the TypeScriptParser package -->
+        <None Include="$(PkgTypeScriptParser)\runtimes\**\*.*" Pack="true" PackagePath="runtimes\%(RecursiveDir)%(Filename)%(Extension)" Visible="false" />
+        <!-- Ship a props file to set TypeScriptParserNativePath for consumers -->
+        <None Include="buildTransitive\BlazorTS.SourceGenerator.props" Pack="true" PackagePath="buildTransitive\BlazorTS.SourceGenerator.props" Visible="false" />
     </ItemGroup>
 
     <ItemGroup>

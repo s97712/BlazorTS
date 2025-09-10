@@ -1,0 +1,25 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Base path inside this package to the native runtimes -->
+    <TypeScriptParserNativeLibraryPath Condition="'$(TypeScriptParserNativeLibraryPath)' == ''">$(MSBuildThisFileDirectory)../runtimes/</TypeScriptParserNativeLibraryPath>
+
+    <!-- Detect runtime identifier similarly to TypeScriptParser's props -->
+    <TypeScriptParserRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</TypeScriptParserRuntimeIdentifier>
+    <TypeScriptParserRuntimeIdentifier Condition="'$(TypeScriptParserRuntimeIdentifier)' == '' AND '$(PlatformTarget)' == 'x64' AND $([MSBuild]::IsOSPlatform('Windows'))">win-x64</TypeScriptParserRuntimeIdentifier>
+    <TypeScriptParserRuntimeIdentifier Condition="'$(TypeScriptParserRuntimeIdentifier)' == '' AND '$(PlatformTarget)' == 'x86' AND $([MSBuild]::IsOSPlatform('Windows'))">win-x86</TypeScriptParserRuntimeIdentifier>
+    <TypeScriptParserRuntimeIdentifier Condition="'$(TypeScriptParserRuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</TypeScriptParserRuntimeIdentifier>
+    <TypeScriptParserRuntimeIdentifier Condition="'$(TypeScriptParserRuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))">osx-arm64</TypeScriptParserRuntimeIdentifier>
+    <TypeScriptParserRuntimeIdentifier Condition="'$(TypeScriptParserRuntimeIdentifier)' == ''">win-x64</TypeScriptParserRuntimeIdentifier>
+
+    <!-- Compute the full native path for the analyzer to load -->
+    <TypeScriptParserNativePath>$(TypeScriptParserNativeLibraryPath)$(TypeScriptParserRuntimeIdentifier)/native/</TypeScriptParserNativePath>
+  </PropertyGroup>
+
+  <!-- Provide AssemblyMetadata as a fallback channel for the generator -->
+  <ItemGroup>
+    <AssemblyMetadata Include="TypeScriptParserNativePath" Value="$(TypeScriptParserNativePath)" />
+  </ItemGroup>
+
+</Project>
+
