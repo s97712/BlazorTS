@@ -135,8 +135,10 @@ Register the BlazorTS services in `Program.cs`.
 ```csharp
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
-builder.Services.AddScoped<BlazorTS.ScriptBridge>();
+// Register BlazorTS core services (includes default path resolver)
+builder.Services.AddBlazorTS();
 // Automatically finds and registers all generated TSInterop services
 builder.Services.AddBlazorTSScripts();
 ```
@@ -171,6 +173,32 @@ public partial class Counter
 ```
 
 In this way, BlazorTS perfectly integrates the TypeScript development experience with the Blazor component model, achieving true modularity.
+
+## 🛠️ Custom Path Resolution
+
+BlazorTS maps `MyApp.Components.Counter` to `/js/Components/Counter.js` by default.
+
+To customize paths, specify when registering services:
+
+```csharp
+// Using custom function
+builder.Services.AddBlazorTS(type =>
+{
+    var path = type.FullName!.Replace('.', '/');
+    return $"/scripts/{path}.js";
+});
+
+// Using custom resolver class
+public class CustomResolver : INSResolver
+{
+    public string ResolveNS(Type tsType)
+    {
+        var path = tsType.FullName!.Replace('.', '/');
+        return $"/lib/{path}.js";
+    }
+}
+builder.Services.AddBlazorTS<CustomResolver>();
+```
 
 ## 🔧 Supported Types
 

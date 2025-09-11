@@ -58,6 +58,8 @@ public class ResolveGeneratorTests : TestBase
         Assert.Contains("public async Task<string> greet(string name)", wrapperCode);
         Assert.Contains("return await invoker.InvokeAsync<string>", wrapperCode);
         Assert.Contains("new object?[] { name }", wrapperCode);
+        // 验证使用实例方法解析路径
+        Assert.Contains("private readonly string url = invoker.ResolveNS(typeof(", wrapperCode);
     }
 
     [Fact]

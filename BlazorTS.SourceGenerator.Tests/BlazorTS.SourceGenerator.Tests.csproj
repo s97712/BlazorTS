@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlazorTS.SourceGenerator\BlazorTS.SourceGenerator.csproj" />
+    <ProjectReference Include="..\BlazorTS\BlazorTS.csproj" />
   </ItemGroup>
 
 </Project>
