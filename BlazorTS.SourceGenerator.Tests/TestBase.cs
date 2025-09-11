@@ -112,7 +112,7 @@ public abstract class TestBase
             // 忽略异常，返回默认测试路径
         }
         
-        return null;
+        return "/test/native/";
     }
 }
 

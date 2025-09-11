@@ -135,8 +135,10 @@ export function IncrementCount(count: number): number {
 ```csharp
 // Program.cs
 using BlazorTS.SourceGenerator.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
-builder.Services.AddScoped<BlazorTS.ScriptBridge>();
+// 注册 BlazorTS 核心服务（包含默认路径解析器）
+builder.Services.AddBlazorTS();
 // 自动查找并注册所有生成的 TSInterop 服务
 builder.Services.AddBlazorTSScripts();
 ```
@@ -171,6 +173,32 @@ public partial class Counter
 ```
 
 通过这种方式，BlazorTS 将 TypeScript 的开发体验与 Blazor 组件模型完美融合，实现了真正的模块化。
+
+## 🛠️ 自定义路径解析
+
+BlazorTS 默认将 `MyApp.Components.Counter` 映射为 `/js/Components/Counter.js`。
+
+如需自定义路径，可在注册服务时指定：
+
+```csharp
+// 使用自定义函数
+builder.Services.AddBlazorTS(type =>
+{
+    var path = type.FullName!.Replace('.', '/');
+    return $"/scripts/{path}.js";
+});
+
+// 使用自定义解析器类
+public class CustomResolver : INSResolver
+{
+    public string ResolveNS(Type tsType)
+    {
+        var path = tsType.FullName!.Replace('.', '/');
+        return $"/lib/{path}.js";
+    }
+}
+builder.Services.AddBlazorTS<CustomResolver>();
+```
 
 ## 🔧 支持的类型
 

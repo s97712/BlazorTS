@@ -8,7 +8,8 @@ namespace BlazorTS;
 /// Provides a bridge for interoperability between Blazor and TypeScript/JavaScript.
 /// </summary>
 /// <param name="jsRuntime">The JavaScript runtime environment</param>
-public class ScriptBridge(IJSRuntime jsRuntime)
+/// <param name="resolver">The namespace resolver for custom path resolution</param>
+public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
 {
     private readonly Lazy<Task<IJSObjectReference>> _module =
         new(() => jsRuntime.InvokeAsync<IJSObjectReference>(
@@ -72,27 +73,13 @@ public class ScriptBridge(IJSRuntime jsRuntime)
     }
 
     /// <summary>
-    /// Resolves the compiled JavaScript path for TypeScript modules.
+    /// Resolves the compiled JavaScript path for TypeScript modules using the injected resolver.
     /// </summary>
     /// <param name="tsType">The TypeScript module type</param>
     /// <returns>The compiled JavaScript file path</returns>
-    public static string ResolveNS(Type tsType)
+    public string ResolveNS(Type tsType)
     {
-        return ResolveNS("js", tsType);
-    }
-
-    /// <summary>
-    /// Resolves the compiled JavaScript path for TypeScript modules with custom root directory.
-    /// </summary>
-    /// <param name="rootDir">The root directory for compiled JavaScript files</param>
-    /// <param name="tsType">The TypeScript module type</param>
-    /// <returns>The compiled JavaScript file path</returns>
-    public static string ResolveNS(string rootDir, Type tsType)
-    {
-        var name = Regex.Replace(tsType.FullName!, $"^{PkgName}.", "")
-            !.Replace(".", "/");
-        var path = $"/{rootDir}/{name}.js";
-        return path;
+        return resolver.ResolveNS(tsType);
     }
 
     private async ValueTask<TValue> Invoke<TValue>(string moduleName, string methodName, params object?[]? args)
