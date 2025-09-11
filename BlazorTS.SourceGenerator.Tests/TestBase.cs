@@ -112,6 +112,7 @@ public abstract class TestBase
             // 忽略异常，返回默认测试路径
         }
         
+        // 使用一个非空的默认测试路径，确保生成器不会因空路径而跳过处理
         return "/test/native/";
     }
 }
