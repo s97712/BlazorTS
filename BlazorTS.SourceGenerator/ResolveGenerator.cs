@@ -237,6 +237,10 @@ using Microsoft.AspNetCore.Components;
 
 namespace {ns};
 
+/// <summary>
+/// Provides strongly-typed access to the TypeScript functions in {className}.entry.ts.
+/// This class is designed for dependency injection.
+/// </summary>
 public class {className}(ScriptBridge invoker)
 {{
     private readonly string url = invoker.ResolveNS(typeof({fullName}));
