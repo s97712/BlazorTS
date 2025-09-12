@@ -3,26 +3,39 @@ using Xunit;
 
 namespace BlazorTS.TestPackage
 {
-    public partial class TestFunctions { }
-    public class SourceGeneratorTests
+    public partial class TestComponent { }
+    public class SourceGeneratorTest
     {
         [Fact]
-        public void Test_Generated_Functions_Exist()
+        public void Test_Generated_Functions_Exist_For_TestModule()
         {
-            // 使用反射测试确保正确生成函数 - 引用实际的生成类
-            var testFunctionsType = typeof(TestFunctions);
+            var assembly = Assembly.GetExecutingAssembly();
+            var testModuleType = assembly.GetType("BlazorTS.TestPackage.TestModule");
+            Assert.NotNull(testModuleType);
             
-            // 获取TSInterop嵌套类
-            var tsInteropType = testFunctionsType.GetNestedType("TSInterop");
-            Assert.NotNull(tsInteropType);
-            
-            // 验证主要函数已生成
-            var methods = tsInteropType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var methods = testModuleType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var methodNames = methods.Select(m => m.Name).ToArray();
             
             Assert.Contains("hello", methodNames);
             Assert.Contains("add", methodNames);
             Assert.Contains("greet", methodNames);
+            Assert.Contains("arrowFunction", methodNames);
+            Assert.Contains("asyncArrowFunction", methodNames);
+            Assert.Contains("functionExpression", methodNames);
+            Assert.Contains("defaultFunction", methodNames);
+        }
+
+        [Fact]
+        public void Test_Generated_Functions_Exist_For_TestComponent()
+        {
+            var testComponentType = typeof(TestComponent);
+            var tsInteropType = testComponentType.GetNestedType("TSInterop");
+            Assert.NotNull(tsInteropType);
+
+            var methods = tsInteropType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var methodNames = methods.Select(m => m.Name).ToArray();
+
+            Assert.Contains("componentFunc", methodNames);
         }
     }
 }

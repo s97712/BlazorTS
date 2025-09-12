@@ -54,9 +54,10 @@ public abstract class TestBase
     /// <summary>
     /// 创建AdditionalText测试对象
     /// </summary>
-    protected static AdditionalText CreateAdditionalText(string path, string content)
+    protected static AdditionalText CreateAdditionalText(string path, string content, string projectDir = "/test/project/")
     {
-        return new TestAdditionalText(path, content);
+        var fullPath = Path.Combine(projectDir, path);
+        return new TestAdditionalText(fullPath, content);
     }
 
     /// <summary>

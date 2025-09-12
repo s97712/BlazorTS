@@ -61,48 +61,80 @@ Install-Package Microsoft.TypeScript.MSBuild # (optional)
 Add the following to your `.csproj` file to ensure TypeScript files are processed correctly:
 
 ```xml
-<!-- Add TypeScript files as additional files, excluding node_modules -->
+<!-- Add .razor.ts and .entry.ts files as additional files -->
 <ItemGroup>
-  <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
+  <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
+  <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
 </ItemGroup>
 ```
 
-## 🚀 Quick Start: Binding a TypeScript Module to a Razor Component
+## 🚀 File Naming Conventions
 
-The core strength of BlazorTS is its ability to seamlessly "bind" a TypeScript file to a Razor component as its dedicated script module. This is achieved through **file naming conventions** and **partial classes**.
+BlazorTS supports two types of TypeScript files to provide a flexible modularization scheme:
 
-### 1. Create the Component and its TypeScript Module
+### 1. Razor Component Scripts (`.razor.ts`)
 
-Let's assume we have a `Counter` component.
+These files are bound to a specific Razor component for component-level script logic.
+
+- **Naming Convention**: `MyComponent.razor.ts` must be paired with `MyComponent.razor`.
+- **Generated Output**: Automatically generates a `partial class` for `MyComponent` and injects a `TSInterop` instance named `Scripts`.
+- **Usage**: Directly call TypeScript functions via the `@inject`ed `Scripts` property within the component.
+
+**Example:**
+
+**`Components/Pages/Counter.razor.ts`**
+```typescript
+// Dedicated module for the Counter.razor component
+export function increment(count: number): number {
+    console.log("Incrementing count from TypeScript module!");
+    return count + 1;
+}
+```
 
 **`Components/Pages/Counter.razor`**
 ```csharp
 @page "/counter"
 @rendermode InteractiveServer
 
-@* Declare this component as a partial class to merge with the generated code *@
 @code {
-    public partial class Counter
-    {
-        private int currentCount = 0;
+    private int currentCount = 0;
 
-        private async Task HandleClick()
-        {
-            // Directly call the `Scripts` property injected by BlazorTS
-            currentCount = await Scripts.IncrementCount(currentCount);
-        }
+    private async Task HandleClick()
+    {
+        // Directly call the `Scripts` property injected by BlazorTS
+        currentCount = await Scripts.increment(currentCount);
     }
 }
 ```
 
-**`Components/Pages/Counter.ts`**
-Create a TypeScript file with the same name as the Razor component.
+### 2. Standalone Feature Modules (`.entry.ts`)
+
+These files are used to define common TypeScript modules that can be shared across multiple components or services.
+
+- **Naming Convention**: `my-utils.entry.ts` or `api.entry.ts`.
+- **Generated Output**: Generates a standard C# class (e.g., `MyUtils` or `Api`) that needs to be manually registered and injected.
+- **Usage**: Register the service in `Program.cs` and use it where needed via dependency injection.
+
+**Example:**
+
+**`Services/Formatter.entry.ts`**
 ```typescript
-// This file is the dedicated module for the Counter.razor component
-export function IncrementCount(count: number): number {
-    console.log("Incrementing count from TypeScript module!");
-    return count + 1;
+export function formatCurrency(amount: number): string {
+    return `$${amount.toFixed(2)}`;
 }
+```
+
+**`Program.cs`**
+```csharp
+// Automatically finds and registers all services generated from .entry.ts files
+builder.Services.AddBlazorTSScripts();
+```
+
+**`MyComponent.razor`**
+```csharp
+@inject TestApp.Services.Formatter Formatter
+
+<p>@Formatter.formatCurrency(123.45)</p>
 ```
 
 ### 2. Configure `tsconfig.json`
@@ -116,17 +148,16 @@ To enable Blazor to find the compiled JS file, we need to configure `tsconfig.js
     "noEmitOnError": true,
     "removeComments": false,
     "target": "es2015",
-    // Use "rootDir" and "outDir" together to preserve the source directory structure in the output directory
     "rootDir": ".",
     "outDir": "wwwroot/js"
   },
   "include": [
-    // Only include .ts files in the project
-    "**/*.ts"
+    "**/*.razor.ts",
+    "**/*.entry.ts"
   ]
 }
 ```
-> With this configuration, `Components/Pages/Counter.ts` will be compiled to `wwwroot/js/Components/Pages/Counter.js`.
+> With this configuration, `Components/Pages/Counter.razor.ts` will be compiled to `wwwroot/js/Components/Pages/Counter.js`.
 
 ### 3. Register Services
 
@@ -139,7 +170,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 // Register BlazorTS core services (includes default path resolver)
 builder.Services.AddBlazorTS();
-// Automatically finds and registers all generated TSInterop services
+// Automatically finds and registers all services generated from .entry.ts files
 builder.Services.AddBlazorTSScripts();
 ```
 
@@ -148,7 +179,7 @@ builder.Services.AddBlazorTSScripts();
 Now, run your Blazor application. When you click the button:
 1.  The `HandleClick` method in `Counter.razor` is called.
 2.  It directly accesses the `Scripts` property, which is automatically generated by BlazorTS.
-3.  The `Scripts.IncrementCount` call executes the corresponding function in `Counter.ts`.
+3.  The `Scripts.increment` call executes the corresponding function in `Counter.razor.ts`.
 
 Behind the scenes, BlazorTS generates the following `partial class` code for you and merges it with your `Counter.razor.cs`:
 
@@ -164,7 +195,7 @@ public partial class Counter
     public class TSInterop(ScriptBridge invoker)
     {
         // ... implementation details ...
-        public async Task<double> IncrementCount(double count)
+        public async Task<double> increment(double count)
         {
             // ... calls JS ...
         }

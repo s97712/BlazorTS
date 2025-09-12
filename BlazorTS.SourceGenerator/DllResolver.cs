@@ -58,7 +58,7 @@ namespace BlazorTS.SourceGenerator
         /// <summary>
         /// 获取TypeScript解析器Native路径 - 从build property或Compilation的AssemblyMetadata获取
         /// </summary>
-        public static string? GetTypeScriptParserNativePath(Compilation compilation, AnalyzerConfigOptionsProvider optionsProvider = null)
+        public static string? GetTypeScriptParserNativePath(Compilation compilation, AnalyzerConfigOptionsProvider? optionsProvider = null)
         {
             try
             {

@@ -173,16 +173,24 @@ export default function defaultFunction() { }
 
 完整的 TypeScript 文件示例：
 
+**`MyComponent.razor.ts`**
 ```typescript
 // ✅ 支持的函数都会被生成为 C# 方法
 
+export function showMessage(message: string): void {
+    alert(message);
+}
+```
+
+**`utils.entry.ts`**
+```typescript
 export function calculateTotal(items: number[]): number {
     return items.reduce((sum, item) => sum + item, 0);
 }
 
 export async function saveData(data: any): Promise<boolean> {
     try {
-        await api.save(data);
+        // await api.save(data);
         return true;
     } catch {
         return false;
