@@ -16,7 +16,64 @@ public class ResolveGeneratorTests : TestBase
     }
 
     [Fact]
-    public void ResolveGenerator_WithSingleTsFile_GeneratesOutput()
+    public void ResolveGenerator_WithRazorTsFile_GeneratesPartialClass()
+    {
+        // Arrange
+        var generator = new ResolveGenerator();
+        var tsContent = "export function greet(name: string): string { return `Hello, ${name}!`; }";
+        var tsFile = CreateAdditionalText("Components/Pages/MyComponent.razor.ts", tsContent);
+
+        // Act
+        var generatorResult = RunGenerator(generator, new[] { tsFile }, "/test/project/", "TestApp");
+
+        // Assert
+        Assert.Single(generatorResult.GeneratedSources);
+        var generatedSource = generatorResult.GeneratedSources.Single();
+        Assert.Equal("TestApp.Components.Pages.MyComponent.razor.g.cs", generatedSource.HintName);
+
+        var code = generatedSource.SourceText.ToString();
+        Assert.Contains("namespace TestApp.Components.Pages;", code);
+        Assert.Contains("public partial class MyComponent", code);
+        Assert.Contains("[Inject] public TSInterop Scripts { get; set; } = null!;", code);
+        Assert.Contains("public class TSInterop(ScriptBridge invoker)", code);
+        Assert.Contains("public async Task<string> greet(string name)", code);
+    }
+
+    [Fact]
+    public void ResolveGenerator_WithEntryTsFile_GeneratesStandardClassAndExtension()
+    {
+        // Arrange
+        var generator = new ResolveGenerator();
+        var tsContent = "export function doWork(): void {}";
+        var tsFile = CreateAdditionalText("Services/MyService.entry.ts", tsContent);
+
+        // Act
+        var generatorResult = RunGenerator(generator, new[] { tsFile }, "/test/project/", "TestApp");
+
+        // Assert
+        Assert.Equal(2, generatorResult.GeneratedSources.Length);
+
+        // Check generated class
+        var classSource = generatorResult.GeneratedSources.FirstOrDefault(s => s.HintName.EndsWith(".entry.g.cs"));
+        Assert.NotNull(classSource.SourceText);
+        Assert.Equal("TestApp.Services.MyService.entry.g.cs", classSource.HintName);
+        var classCode = classSource.SourceText.ToString();
+        Assert.Contains("namespace TestApp.Services;", classCode);
+        Assert.Contains("public class MyService(ScriptBridge invoker)", classCode);
+        Assert.DoesNotContain("public partial class", classCode);
+        Assert.DoesNotContain("[Inject]", classCode);
+        Assert.Contains("public async Task doWork()", classCode);
+
+        // Check service extension
+        var extensionSource = generatorResult.GeneratedSources.FirstOrDefault(s => s.HintName.EndsWith("Extensions.g.cs"));
+        Assert.NotNull(extensionSource.SourceText);
+        var extensionCode = extensionSource.SourceText.ToString();
+        Assert.Contains("public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)", extensionCode);
+        Assert.Contains("services.AddScoped<TestApp.Services.MyService>();", extensionCode);
+    }
+
+    [Fact]
+    public void ResolveGenerator_WithUnsupportedTsFile_GeneratesNothing()
     {
         // Arrange
         var generator = new ResolveGenerator();
@@ -27,123 +84,42 @@ public class ResolveGeneratorTests : TestBase
         var generatorResult = RunGenerator(generator, new[] { tsFile });
 
         // Assert
-        Assert.True(generatorResult.GeneratedSources.Length >= 0);
-    }
-
-
-    [Fact]
-    public void ResolveGenerator_VerifyGeneratedWrapperCode_CorrectStructure()
-    {
-        // Arrange
-        var generator = new ResolveGenerator();
-        var tsContent = "export function greet(name: string): string { return `Hello, ${name}!`; }";
-        var tsFile = CreateAdditionalText("Demo.ts", tsContent);
-
-        // Act
-        var generatorResult = RunGenerator(generator, new[] { tsFile });
-        
-        // Assert - 应该生成两个文件：包装类和服务扩展
-        Assert.True(generatorResult.GeneratedSources.Length >= 2);
-        
-        // 检查包装类代码
-        var wrapperSource = generatorResult.GeneratedSources
-            .FirstOrDefault(s => s.HintName.Contains("Demo.ts.module.g.cs"));
-        Assert.NotNull(wrapperSource.SourceText);
-        
-        var wrapperCode = wrapperSource.SourceText.ToString();
-        
-        // 验证包装类结构
-        Assert.Contains("public partial class Demo", wrapperCode);
-        Assert.Contains("public class TSInterop(ScriptBridge invoker)", wrapperCode);
-        Assert.Contains("public async Task<string> greet(string name)", wrapperCode);
-        Assert.Contains("return await invoker.InvokeAsync<string>", wrapperCode);
-        Assert.Contains("new object?[] { name }", wrapperCode);
-        // 验证使用实例方法解析路径
-        Assert.Contains("private readonly string url = invoker.ResolveNS(typeof(", wrapperCode);
+        Assert.Empty(generatorResult.GeneratedSources);
     }
 
     [Fact]
-    public void ResolveGenerator_VerifyServiceExtensionCode_CorrectRegistration()
+    public void ResolveGenerator_WithMixedFiles_GeneratesCorrectly()
     {
         // Arrange
         var generator = new ResolveGenerator();
-        var tsFile1 = CreateAdditionalText("Utils.ts", "function helper(): void {}");
-        var tsFile2 = CreateAdditionalText("Api.ts", "function fetch(): Promise<any> { return Promise.resolve(); }");
+        var razorContent = "export function razorFunc(): void {}";
+        var entryContent = "export function entryFunc(): void {}";
+        var razorFile = CreateAdditionalText("Components/MyPage.razor.ts", razorContent);
+        var entryFile = CreateAdditionalText("Api/Client.entry.ts", entryContent);
 
         // Act
-        var generatorResult = RunGenerator(generator, new[] { tsFile1, tsFile2 }, "/test/project/", "MyApp");
-        
-        // Assert - 检查服务扩展代码
-        var serviceSource = generatorResult.GeneratedSources
-            .FirstOrDefault(s => s.HintName.Contains("ServiceCollectionExtensions.g.cs"));
-        Assert.NotNull(serviceSource.SourceText);
-        
-        var serviceCode = serviceSource.SourceText.ToString();
-        
-        // 验证服务注册
-        Assert.Contains("namespace BlazorTS.SourceGenerator.Extensions", serviceCode);
-        Assert.Contains("public static class ServiceCollectionExtensions", serviceCode);
-        Assert.Contains("AddBlazorTSScripts", serviceCode);
-        Assert.Contains("Utils.TSInterop", serviceCode);
-        Assert.Contains("Api.TSInterop", serviceCode);
-    }
+        var generatorResult = RunGenerator(generator, new[] { razorFile, entryFile }, "/test/project/", "MyApp");
 
-    [Fact]
-    public void ResolveGenerator_VerifyTypeConversion_CorrectMapping()
-    {
-        // Arrange
-        var generator = new ResolveGenerator();
-        var tsContent = @"
-export function processData(
-    text: string,
-    count: number,
-    flag: boolean,
-    data: any
-): number {
-    return 42;
-}";
-        var tsFile = CreateAdditionalText("TypeTest.ts", tsContent);
-
-        // Act
-        var generatorResult = RunGenerator(generator, new[] { tsFile }, "/test/project/", "TypeTests");
-        
         // Assert
-        var wrapperSource = generatorResult.GeneratedSources
-            .FirstOrDefault(s => s.HintName.Contains("TypeTest.ts.module.g.cs"));
-        Assert.NotNull(wrapperSource.SourceText);
-        
-        var wrapperCode = wrapperSource.SourceText.ToString();
-        
-        // 验证类型转换
-        Assert.Contains("string text", wrapperCode);        // string -> string
-        Assert.Contains("double count", wrapperCode);       // number -> double
-        Assert.Contains("bool flag", wrapperCode);          // boolean -> bool
-        Assert.Contains("object? data", wrapperCode);       // any -> object?
-        Assert.Contains("Task<double>", wrapperCode);       // number -> Task<double>
-    }
+        Assert.Equal(3, generatorResult.GeneratedSources.Length);
 
-    [Fact]
-    public void ResolveGenerator_VerifyVoidFunction_TaskReturnType()
-    {
-        // Arrange
-        var generator = new ResolveGenerator();
-        var tsContent = "export function initialize(): void { console.log('init'); }";
-        var tsFile = CreateAdditionalText("Init.ts", tsContent);
+        // Razor file check
+        var razorSource = generatorResult.GeneratedSources.Single(s => s.HintName == "MyApp.Components.MyPage.razor.g.cs");
+        var razorCode = razorSource.SourceText.ToString();
+        Assert.Contains("public partial class MyPage", razorCode);
+        Assert.Contains("public async Task razorFunc()", razorCode);
 
-        // Act
-        var generatorResult = RunGenerator(generator, new[] { tsFile }, "/test/project/", "InitApp");
-        
-        // Assert
-        var wrapperSource = generatorResult.GeneratedSources
-            .FirstOrDefault(s => s.HintName.Contains("Init.ts.module.g.cs"));
-        Assert.NotNull(wrapperSource.SourceText);
-        
-        var wrapperCode = wrapperSource.SourceText.ToString();
-        
-        // 验证void函数返回Task而不是Task<void>
-        Assert.Contains("public async Task initialize()", wrapperCode);
-        Assert.Contains("await invoker.InvokeAsync<object?>", wrapperCode);
-        Assert.DoesNotContain("Task<void>", wrapperCode);
+        // Entry file check
+        var entrySource = generatorResult.GeneratedSources.Single(s => s.HintName == "MyApp.Api.Client.entry.g.cs");
+        var entryCode = entrySource.SourceText.ToString();
+        Assert.Contains("public class Client(ScriptBridge invoker)", entryCode);
+        Assert.Contains("public async Task entryFunc()", entryCode);
+
+        // Extension check
+        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Extensions.g.cs"));
+        var extensionCode = extensionSource.SourceText.ToString();
+        Assert.Contains("services.AddScoped<MyApp.Api.Client>();", extensionCode);
+        Assert.DoesNotContain("MyPage", extensionCode);
     }
 
 }

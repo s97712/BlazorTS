@@ -44,7 +44,7 @@ export async function fetchData(url: string): Promise<any> {
     public void Extract_NullCode_ReturnsEmpty()
     {
         // Act & Assert
-        Assert.Empty(MethodExtractor.Extract(null));
+        Assert.Empty(MethodExtractor.Extract(null!));
     }
 
     [Fact]

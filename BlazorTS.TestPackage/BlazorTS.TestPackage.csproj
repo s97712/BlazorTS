@@ -26,7 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
+    <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
+    <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
   </ItemGroup>
 
   <!-- No extra targets needed; SourceGenerator package now ships native libs and sets TypeScriptParserNativePath. -->

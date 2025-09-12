@@ -61,48 +61,83 @@ Install-Package Microsoft.TypeScript.MSBuild # (可选)
 在 `.csproj` 文件中添加以下配置，以确保 TypeScript 文件被正确处理：
 
 ```xml
-<!-- 添加 TypeScript 文件为附加文件, 并排除 node_modules -->
+<!-- 添加 .razor.ts 和 .entry.ts 文件为附加文件 -->
 <ItemGroup>
-  <AdditionalFiles Include="**/*.ts" Exclude="**/node_modules/**" />
+  <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
+  <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
 </ItemGroup>
 ```
 
-## 🚀 快速开始：将 TypeScript 模块绑定到 Razor 组件
+## 🚀 文件命名约定
 
-BlazorTS 的核心优势在于能够将一个 TypeScript 文件无缝地“绑定”到一个 Razor 组件上，作为其专属的脚本模块。这是通过**文件命名约定**和 **partial class** 实现的。
+BlazorTS 支持两种 TypeScript 文件类型，以提供灵活的模块化方案：
 
-### 1. 创建组件及其 TypeScript 模块
+### 1. Razor 组件脚本 (`.razor.ts`)
 
-假设我们有一个 `Counter` 组件。
+这种文件与特定的 Razor 组件绑定，用于组件级别的脚本逻辑。
+
+- **命名约定**: `MyComponent.razor.ts` 必须与 `MyComponent.razor` 配对。
+- **生成结果**: 自动为 `MyComponent` 生成一个 `partial class`，并注入一个名为 `Scripts` 的 `TSInterop` 实例。
+- **使用方式**: 在组件内通过 `@inject` 的 `Scripts` 属性直接调用 TypeScript 函数。
+
+**示例：**
+
+**`Components/Pages/Counter.razor.ts`**
+```typescript
+// Counter.razor 组件的专属模块
+export function increment(count: number): number {
+    console.log("Incrementing count from TypeScript module!");
+    return count + 1;
+}
+```
 
 **`Components/Pages/Counter.razor`**
 ```csharp
 @page "/counter"
 @rendermode InteractiveServer
 
-@* 将这个组件声明为 partial class，以便与生成的代码合并 *@
 @code {
-    public partial class Counter
+    public partial class Counter // 必须是 partial class
     {
         private int currentCount = 0;
 
         private async Task HandleClick()
         {
             // 直接调用由 BlazorTS 注入的 Scripts 属性
-            currentCount = await Scripts.IncrementCount(currentCount);
+            currentCount = await Scripts.increment(currentCount);
         }
     }
 }
 ```
 
-**`Components/Pages/Counter.ts`**
-创建一个与 Razor 组件同名的 TypeScript 文件。
+### 2. 独立功能模块 (`.entry.ts`)
+
+这种文件用于定义可被多个组件或服务共享的通用 TypeScript 模块。
+
+- **命名约定**: `my-utils.entry.ts` 或 `api.entry.ts`。
+- **生成结果**: 生成一个标准的 C# 类（例如 `MyUtils` 或 `Api`），需要手动注册和注入。
+- **使用方式**: 在 `Program.cs` 中注册服务，然后在需要的地方通过依赖注入使用。
+
+**示例：**
+
+**`Services/Formatter.entry.ts`**
 ```typescript
-// 这个文件是 Counter.razor 组件的专属模块
-export function IncrementCount(count: number): number {
-    console.log("Incrementing count from TypeScript module!");
-    return count + 1;
+export function formatCurrency(amount: number): string {
+    return `$${amount.toFixed(2)}`;
 }
+```
+
+**`Program.cs`**
+```csharp
+// 自动查找并注册所有 .entry.ts 生成的服务
+builder.Services.AddBlazorTSScripts();
+```
+
+**`MyComponent.razor`**
+```csharp
+@inject TestApp.Services.Formatter Formatter
+
+<p>@Formatter.formatCurrency(123.45)</p>
 ```
 
 ### 2. 配置 `tsconfig.json`
@@ -116,17 +151,16 @@ export function IncrementCount(count: number): number {
     "noEmitOnError": true,
     "removeComments": false,
     "target": "es2015",
-    // "rootDir" 和 "outDir" 配合使用，以在输出目录中保留源目录结构
     "rootDir": ".",
     "outDir": "wwwroot/js"
   },
   "include": [
-    // 仅包含项目中的 .ts 文件
-    "**/*.ts"
+    "**/*.razor.ts",
+    "**/*.entry.ts"
   ]
 }
 ```
-> 这样配置后，`Components/Pages/Counter.ts` 将被编译到 `wwwroot/js/Components/Pages/Counter.js`。
+> 这样配置后，`Components/Pages/Counter.razor.ts` 将被编译到 `wwwroot/js/Components/Pages/Counter.js`。
 
 ### 4. 注册服务
 
@@ -139,7 +173,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 // 注册 BlazorTS 核心服务（包含默认路径解析器）
 builder.Services.AddBlazorTS();
-// 自动查找并注册所有生成的 TSInterop 服务
+// 自动查找并注册所有 .entry.ts 生成的服务
 builder.Services.AddBlazorTSScripts();
 ```
 
@@ -148,7 +182,7 @@ builder.Services.AddBlazorTSScripts();
 现在，运行你的 Blazor 应用。当你点击按钮时：
 1.  `Counter.razor` 中的 `HandleClick` 方法被调用。
 2.  它直接访问 `Scripts` 属性，这是 BlazorTS 自动生成的。
-3.  `Scripts.IncrementCount` 调用会执行 `Counter.ts` 中的相应函数。
+3.  `Scripts.increment` 调用会执行 `Counter.razor.ts` 中的相应函数。
 
 BlazorTS 在后台为你生成了如下的 `partial class` 代码，并将其与你的 `Counter.razor.cs` 合并：
 
@@ -164,7 +198,7 @@ public partial class Counter
     public class TSInterop(ScriptBridge invoker)
     {
         // ... 实现细节 ...
-        public async Task<double> IncrementCount(double count)
+        public async Task<double> increment(double count)
         {
             // ... 调用 JS ...
         }
