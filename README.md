@@ -244,12 +244,10 @@ builder.Services.AddBlazorTS<CustomResolver>();
 
 ## 📖 Documentation
 
-- [Development Guide (Chinese)](docs/开发指南.md) - Detailed development and build instructions
-- [Supported TypeScript Syntax (Chinese)](docs/支持的TypeScript语法.md) - Complete syntax support list
-- [DLL Path Resolution Mechanism (Chinese)](docs/dll路径解析机制文档.md) - Advanced configuration options
+- [Development Guide](docs/development-guide.md) - Detailed development and build instructions
+- [Supported TypeScript Syntax](docs/supported-typescript-syntax.md) - Complete syntax support list
+- [DLL Path Resolution Mechanism](docs/dll-resolver-mechanism.md) - Advanced configuration options
 - [中文说明](README_CN.md) - Chinese version of this README
-
-> **Note**: Documentation is currently available in Chinese. English translations coming soon.
 
 ## 🤝 Contributing
 

@@ -247,9 +247,9 @@ builder.Services.AddBlazorTS<CustomResolver>();
 
 ## 📖 更多文档
 
-- [开发指南](docs/开发指南.md) - 详细的开发和构建说明
-- [支持的 TypeScript 语法](docs/支持的TypeScript语法.md) - 完整的语法支持列表
-- [DLL 路径解析机制](docs/dll路径解析机制文档.md) - 高级配置选项
+- [开发指南](docs/development-guide.md) - 详细的开发和构建说明
+- [支持的 TypeScript 语法](docs/supported-typescript-syntax.md) - 完整的语法支持列表
+- [DLL 路径解析机制](docs/dll-resolver-mechanism.md) - 高级配置选项
 
 ## 🤝 贡献
 
