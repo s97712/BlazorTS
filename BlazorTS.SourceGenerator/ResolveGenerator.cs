@@ -13,6 +13,7 @@ namespace BlazorTS
     public class ResolveGenerator : IIncrementalGenerator
     {
 
+        private static bool _resolverInitialized;
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
 
@@ -30,15 +31,19 @@ namespace BlazorTS
                     return;
                 }
 
-                try
+                if (!_resolverInitialized)
                 {
-                    var dllResolver = new DllResolver(nativePath);
-                    NativeLibrary.SetDllImportResolver(typeof(TypeScriptParser.Parser).Assembly,
-                        (libraryName, assembly, searchPath) => dllResolver.Resolve(libraryName, assembly, searchPath));
-                }
-                catch (Exception ex)
-                {
-                    Helper.Log(spc, $"SetupNativeLibraryResolver failed : {ex.Message}");
+                    try
+                    {
+                        var dllResolver = new DllResolver(nativePath);
+                        NativeLibrary.SetDllImportResolver(typeof(TypeScriptParser.Parser).Assembly,
+                            (libraryName, assembly, searchPath) => dllResolver.Resolve(libraryName, assembly, searchPath));
+                        _resolverInitialized = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Helper.Log(spc, $"SetupNativeLibraryResolver failed : {ex.Message}");
+                    }
                 }
                 
                 // 显示程序集位置信息
@@ -201,10 +206,19 @@ using Microsoft.AspNetCore.Components;
 
 namespace {ns};
 
+/// <summary>
+/// A partial class to provide access to TypeScript functions from {className}.ts.
+/// </summary>
 public partial class {className}
 {{
+    /// <summary>
+    /// Gets or sets the TypeScript interop instance.
+    /// </summary>
     [Inject] public TSInterop Scripts {{ get; set; }} = null!;
 
+    /// <summary>
+    /// Provides strongly-typed access to the TypeScript functions in {className}.ts.
+    /// </summary>
     public class TSInterop(ScriptBridge invoker)
     {{
         private readonly string url = invoker.ResolveNS(typeof({fullName}));
@@ -240,10 +254,15 @@ public class {className}(ScriptBridge invoker)
                 $"{ConvertType(p.Type)} {p.Name}" + (p.IsOptional ? " = default" : "")));
             var args = string.Join(", ", function.Parameters.Select(p => p.Name));
             var returnType = ConvertType(function.ReturnType);
+            var paramDocs = string.Join("\n", function.Parameters.Select(p => $"        /// <param name=\"{p.Name}\">A {p.Type} value.</param>"));
 
             if (returnType == "void")
             {
                 return $@"
+        /// <summary>
+        /// Invokes the '{function.Name}' TypeScript function.
+        /// </summary>
+{paramDocs}
         public async Task {function.Name}({parameters})
         {{
             await invoker.InvokeAsync<object?>(url, ""{function.Name}"",
@@ -253,6 +272,11 @@ public class {className}(ScriptBridge invoker)
             else
             {
                 return $@"
+        /// <summary>
+        /// Invokes the '{function.Name}' TypeScript function and returns a {returnType}.
+        /// </summary>
+{paramDocs}
+        /// <returns>A Task that represents the asynchronous operation, containing the {returnType} result from the TypeScript function.</returns>
         public async Task<{returnType}> {function.Name}({parameters})
         {{
             return await invoker.InvokeAsync<{returnType}>(url, ""{function.Name}"",
@@ -285,8 +309,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorTS.SourceGenerator.Extensions
 {{
+    /// <summary>
+    /// Provides extension methods for setting up BlazorTS-generated script interop services.
+    /// </summary>
     public static class ServiceCollectionExtensions
     {{
+        /// <summary>
+        /// Adds all generated TypeScript interop services to the specified <see cref=""IServiceCollection""/>.
+        /// </summary>
+        /// <param name=""services"">The <see cref=""IServiceCollection""/> to add the services to.</param>
+        /// <returns>The <see cref=""IServiceCollection""/> so that additional calls can be chained.</returns>
         public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
         {{
 {servicesRegistration}
