@@ -132,6 +132,7 @@ namespace BlazorTS
                 Helper.Log(spc, $"Processing {files.Length} BlazorTS files with nativePath: {nativePath}");
 
                 var entryModuleNames = new List<string>();
+                var razorInteropTypeNames = new List<string>();
 
                 foreach (var file in files)
                 {
@@ -140,15 +141,18 @@ namespace BlazorTS
                     {
                         entryModuleNames.Add(fullName);
                     }
+                    else
+                    {
+                        // Register the nested TSInterop for Razor components as injectable services
+                        razorInteropTypeNames.Add($"{fullName}.TSInterop");
+                    }
                 }
 
-                if (entryModuleNames.Any())
-                {
-                    var extensionCode = GenerateExtension(spc, entryModuleNames);
-                    var fileName = "BlazorTS.SourceGenerator.Extensions.ServiceCollectionExtensions.g.cs";
-                    spc.AddSource(fileName, SourceText.From(extensionCode, Encoding.UTF8));
-                    Helper.Log(spc, $"Generated service collection extension for {entryModuleNames.Count} entry modules.");
-                }
+                // Always generate the DI extension, even if there are no TS files.
+                var extensionCode = GenerateExtension(spc, entryModuleNames, razorInteropTypeNames);
+                var extensionFileName = "BlazorTS.SourceGenerator.Extensions.ServiceCollectionExtensions.g.cs";
+                spc.AddSource(extensionFileName, SourceText.From(extensionCode, Encoding.UTF8));
+                Helper.Log(spc, $"Generated service collection extension for {entryModuleNames.Count} entry modules and {razorInteropTypeNames.Count} razor interop types.");
 
             });
 
@@ -302,10 +306,11 @@ public class {className}(ScriptBridge invoker)
             };
         }
 
-        private static string GenerateExtension(SourceProductionContext spc, List<string> entryModuleNames)
+        private static string GenerateExtension(SourceProductionContext spc, List<string> entryModuleNames, List<string> razorInteropTypeNames)
         {
             var servicesRegistration = entryModuleNames
                 .Select(name => $"            services.AddScoped<{name}>();")
+                .Concat(razorInteropTypeNames.Select(name => $"            services.AddScoped<{name}>();"))
                 .ToDelimitedString("\n");
 
             return $@"#nullable enable
@@ -325,6 +330,8 @@ namespace BlazorTS.SourceGenerator.Extensions
         /// <returns>The <see cref=""IServiceCollection""/> so that additional calls can be chained.</returns>
         public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
         {{
+            // Ensure base BlazorTS services (ScriptBridge, INSResolver) are available
+            services.AddBlazorTS();
 {servicesRegistration}
             return services;
         }}

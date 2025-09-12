@@ -1,5 +1,6 @@
 using System.Reflection;
 using Xunit;
+using BlazorTS.SourceGenerator.Extensions;
 
 namespace BlazorTS.TestPackage
 {
