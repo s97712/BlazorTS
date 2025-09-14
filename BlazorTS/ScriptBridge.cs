@@ -76,10 +76,11 @@ public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
     /// Resolves the compiled JavaScript path for TypeScript modules using the injected resolver.
     /// </summary>
     /// <param name="tsType">The TypeScript module type</param>
+    /// <param name="suffix">File suffix like ".razor" or ""</param>
     /// <returns>The compiled JavaScript file path</returns>
-    public string ResolveNS(Type tsType)
+    public string ResolveNS(Type tsType, string suffix)
     {
-        return resolver.ResolveNS(tsType);
+        return resolver.ResolveNS(tsType, suffix);
     }
 
     private async ValueTask<TValue> Invoke<TValue>(string moduleName, string methodName, params object?[]? args)

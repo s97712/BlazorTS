@@ -75,7 +75,7 @@ public partial class TestFunctions
 
     public class TSInterop(ScriptBridge invoker)
     {
-        private readonly string url = ScriptBridge.ResolveNS(typeof(TestFunctions));
+        private readonly string url = invoker.ResolveNS(typeof(TestFunctions), "");
 
         public async Task<string> hello(string name)
         {
@@ -108,6 +108,21 @@ public partial class TestFunctions
 | `any` | `object?` | `Task<object?>` |
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
+
+## Suffix 参数说明
+
+`ResolveNS` 方法现在支持 `suffix` 参数来区分不同模块类型：
+
+```csharp
+// Razor 组件：Component.razor.ts → /js/Component.razor.js
+private readonly string url = invoker.ResolveNS(typeof(Component), ".razor");
+
+// Entry 模块：Module.entry.ts → /js/Module.entry.js
+private readonly string url = invoker.ResolveNS(typeof(Module), ".entry");
+
+// 普通模块：Utils.ts → /js/Utils.js
+private readonly string url = invoker.ResolveNS(typeof(Utils), "");
+```
 
 ## 构建和测试
 

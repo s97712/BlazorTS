@@ -26,8 +26,8 @@ public static class BlazorTSServiceCollectionExtensions
     /// <param name="customResolver">自定义路径解析函数</param>
     /// <returns>服务集合</returns>
     public static IServiceCollection AddBlazorTS(
-        this IServiceCollection services, 
-        Func<Type, string> customResolver)
+        this IServiceCollection services,
+        Func<Type, string, string> customResolver)
     {
         services.AddScoped<BlazorTS.INSResolver>(_ => new BlazorTS.DefaultNSResolver(customResolver));
         services.AddScoped<BlazorTS.ScriptBridge>();

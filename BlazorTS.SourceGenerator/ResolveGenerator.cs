@@ -225,7 +225,7 @@ public partial class {className}
     /// </summary>
     public class TSInterop(ScriptBridge invoker)
     {{
-        private readonly string url = invoker.ResolveNS(typeof({fullName}));
+        private readonly string url = invoker.ResolveNS(typeof({fullName}), "".razor"");
 
         {methods.Select(GenerateMethod).ToDelimitedString("\n")}
     }}
@@ -247,7 +247,7 @@ namespace {ns};
 /// </summary>
 public class {className}(ScriptBridge invoker)
 {{
-    private readonly string url = invoker.ResolveNS(typeof({fullName}));
+    private readonly string url = invoker.ResolveNS(typeof({fullName}), "".entry"");
 
     {methods.Select(GenerateMethod).ToDelimitedString("\n")}
 }}
