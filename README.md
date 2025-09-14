@@ -213,22 +213,41 @@ To customize paths, specify when registering services:
 
 ```csharp
 // Using custom function
-builder.Services.AddBlazorTS(type =>
+builder.Services.AddBlazorTS((type, suffix) =>
 {
     var path = type.FullName!.Replace('.', '/');
-    return $"/scripts/{path}.js";
+    return $"/scripts/{path}{suffix}.js";
 });
 
 // Using custom resolver class
 public class CustomResolver : INSResolver
 {
-    public string ResolveNS(Type tsType)
+    public string ResolveNS(Type tsType, string suffix)
     {
         var path = tsType.FullName!.Replace('.', '/');
-        return $"/lib/{path}.js";
+        return $"/lib/{path}{suffix}.js";
     }
 }
 builder.Services.AddBlazorTS<CustomResolver>();
+```
+
+### Suffix Parameter
+
+The `ResolveNS` method now includes a `suffix` parameter to distinguish between different module types:
+
+- **Razor Components** (`.razor.ts` files): Use suffix `".razor"`
+  - `Component.razor.ts` → `/js/Component.razor.js`
+- **Entry Modules** (`.entry.ts` files): Use suffix `".entry"`
+  - `Module.entry.ts` → `/js/Module.entry.js`
+- **Custom Suffixes**: Any string can be used as suffix
+
+**Examples:**
+```csharp
+// The default resolver automatically handles suffixes
+var resolver = new DefaultNSResolver();
+resolver.ResolveNS(typeof(MyComponent), ".razor");  // "/js/MyComponent.razor.js"
+resolver.ResolveNS(typeof(MyModule), ".entry");     // "/js/MyModule.entry.js"
+resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
 ```
 
 ## 🔧 Supported Types

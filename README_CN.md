@@ -216,22 +216,41 @@ BlazorTS 默认将 `MyApp.Components.Counter` 映射为 `/js/Components/Counter.
 
 ```csharp
 // 使用自定义函数
-builder.Services.AddBlazorTS(type =>
+builder.Services.AddBlazorTS((type, suffix) =>
 {
     var path = type.FullName!.Replace('.', '/');
-    return $"/scripts/{path}.js";
+    return $"/scripts/{path}{suffix}.js";
 });
 
 // 使用自定义解析器类
 public class CustomResolver : INSResolver
 {
-    public string ResolveNS(Type tsType)
+    public string ResolveNS(Type tsType, string suffix)
     {
         var path = tsType.FullName!.Replace('.', '/');
-        return $"/lib/{path}.js";
+        return $"/lib/{path}{suffix}.js";
     }
 }
 builder.Services.AddBlazorTS<CustomResolver>();
+```
+
+### Suffix 参数
+
+`ResolveNS` 方法现在包含 `suffix` 参数，用于区分不同的模块类型：
+
+- **Razor 组件** (`.razor.ts` 文件)：使用后缀 `".razor"`
+  - `Component.razor.ts` → `/js/Component.razor.js`
+- **Entry 模块** (`.entry.ts` 文件)：使用后缀 `".entry"`
+  - `Module.entry.ts` → `/js/Module.entry.js`
+- **自定义后缀**：可以使用任意字符串作为后缀
+
+**示例：**
+```csharp
+// 默认解析器自动处理后缀
+var resolver = new DefaultNSResolver();
+resolver.ResolveNS(typeof(MyComponent), ".razor");  // "/js/MyComponent.razor.js"
+resolver.ResolveNS(typeof(MyModule), ".entry");     // "/js/MyModule.entry.js"
+resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
 ```
 
 ## 🔧 支持的类型

@@ -14,7 +14,7 @@ public class INSResolverTests
         var testType = typeof(TestClass);
         
         // Act
-        var result = resolver.ResolveNS(testType);
+        var result = resolver.ResolveNS(testType, "");
         
         // Assert
         Assert.NotNull(result);
@@ -27,21 +27,30 @@ public class INSResolverTests
     public void DefaultNSResolver_WithCustomFunction_UsesCustomRule()
     {
         // Arrange
-        var customResolver = new DefaultNSResolver(type => $"/custom/{type.Name}.module.js");
+        var customResolver = new DefaultNSResolver((type, suffix) => $"/custom/{type.Name}{suffix}.module.js");
         var testType = typeof(TestClass);
         
         // Act
-        var result = customResolver.ResolveNS(testType);
+        var result = customResolver.ResolveNS(testType, ".test");
         
         // Assert
-        Assert.Equal("/custom/TestClass.module.js", result);
+        Assert.Equal("/custom/TestClass.test.module.js", result);
     }
 
     [Fact]
-    public void DefaultNSResolver_WithNullFunction_ThrowsArgumentNullException()
+    public void DefaultNSResolver_WithNullFunction_UsesDefaultRule()
     {
-        // Arrange & Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new DefaultNSResolver(null!));
+        // Arrange
+        var resolver = new DefaultNSResolver(null);
+        var testType = typeof(TestClass);
+        
+        // Act
+        var result = resolver.ResolveNS(testType, "");
+        
+        // Assert
+        Assert.NotNull(result);
+        Assert.StartsWith("/js/", result);
+        Assert.EndsWith(".js", result);
     }
 
     [Fact]
@@ -52,12 +61,65 @@ public class INSResolverTests
         var nestedType = typeof(TestClass.NestedClass);
         
         // Act
-        var result = resolver.ResolveNS(nestedType);
+        var result = resolver.ResolveNS(nestedType, "");
         
         // Assert
         Assert.NotNull(result);
         Assert.StartsWith("/js/", result);
         Assert.EndsWith(".js", result);
+    }
+
+    [Fact]
+    public void DefaultNSResolver_WithRazorSuffix_GeneratesRazorPath()
+    {
+        // Arrange
+        var resolver = new DefaultNSResolver();
+        var testType = typeof(TestClass);
+        
+        // Act
+        var result = resolver.ResolveNS(testType, ".razor");
+        
+        // Assert
+        Assert.NotNull(result);
+        Assert.StartsWith("/js/", result);
+        Assert.EndsWith(".razor.js", result);
+        Assert.Contains("TestClass", result);
+    }
+
+    [Fact]
+    public void DefaultNSResolver_WithEntrySuffix_GeneratesEntryPath()
+    {
+        // Arrange
+        var resolver = new DefaultNSResolver();
+        var testType = typeof(TestClass);
+        
+        // Act
+        var result = resolver.ResolveNS(testType, ".entry");
+        
+        // Assert
+        Assert.NotNull(result);
+        Assert.StartsWith("/js/", result);
+        Assert.EndsWith(".entry.js", result);
+        Assert.Contains("TestClass", result);
+    }
+
+    [Fact]
+    public void DefaultNSResolver_WithEmptySuffix_GeneratesBasicPath()
+    {
+        // Arrange
+        var resolver = new DefaultNSResolver();
+        var testType = typeof(TestClass);
+        
+        // Act
+        var result = resolver.ResolveNS(testType, "");
+        
+        // Assert
+        Assert.NotNull(result);
+        Assert.StartsWith("/js/", result);
+        Assert.EndsWith(".js", result);
+        Assert.Contains("TestClass", result);
+        Assert.DoesNotContain(".razor", result);
+        Assert.DoesNotContain(".entry", result);
     }
 
     [Fact]
@@ -68,10 +130,24 @@ public class INSResolverTests
         var testType = typeof(TestClass);
         
         // Act
-        var result = customResolver.ResolveNS(testType);
+        var result = customResolver.ResolveNS(testType, "");
         
         // Assert
         Assert.Equal("/test/custom/TestClass.js", result);
+    }
+
+    [Fact]
+    public void CustomNSResolver_WithSuffix_IncludesSuffixInPath()
+    {
+        // Arrange
+        var customResolver = new CustomTestResolver();
+        var testType = typeof(TestClass);
+        
+        // Act
+        var result = customResolver.ResolveNS(testType, ".razor");
+        
+        // Assert
+        Assert.Equal("/test/custom/TestClass.razor.js", result);
     }
 
     private class TestClass
@@ -81,9 +157,9 @@ public class INSResolverTests
 
     private class CustomTestResolver : INSResolver
     {
-        public string ResolveNS(Type tsType)
+        public string ResolveNS(Type tsType, string suffix)
         {
-            return $"/test/custom/{tsType.Name}.js";
+            return $"/test/custom/{tsType.Name}{suffix}.js";
         }
     }
 }
