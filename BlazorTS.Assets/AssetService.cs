@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Linq;
 
 namespace BlazorTS.Assets;
 
@@ -67,7 +68,7 @@ public class AssetService : IAssetService
 
     private string GetDevelopmentAssetUrl(string assetKey)
     {
-        return $"{_options.DevServerUrl}/{assetKey}";
+        return ResolveUrl(_options.DevServerUrl, assetKey);
     }
 
     private string GetProductionAssetUrl(string assetKey)
@@ -77,7 +78,7 @@ public class AssetService : IAssetService
             throw new KeyNotFoundException($"Asset not found in manifest: {assetKey}");
         }
 
-        return NormalizeAssetPath(manifestEntry.File);
+        return ResolveUrl(_options.DevServerUrl ?? "", manifestEntry.File);
     }
 
     private static string NormalizeAssetPath(string filePath)
@@ -133,7 +134,7 @@ public class AssetService : IAssetService
             .Where(entry => entry.Value.IsEntry == true && !string.IsNullOrEmpty(entry.Value.Src))
             .ToDictionary(
                 entry => entry.Value.Src!,
-                entry => NormalizeAssetPath(entry.Value.File)
+                entry => ResolveUrl(_options.DevServerUrl ?? "", entry.Value.File)
             );
     }
 
@@ -153,5 +154,72 @@ public class AssetService : IAssetService
         var fallbackImportMap = endpointImports ?? new ImportMapDefinition(null, null, null);
 
         return ImportMapDefinition.Combine(manifestImportMap, fallbackImportMap);
+    }
+
+    private string ResolveUrl(string template, string assetPath)
+    {
+        assetPath = NormalizeAssetPath(assetPath);
+        
+        if (string.IsNullOrEmpty(template))
+            return assetPath;
+            
+        return ApplyTemplate(template) + assetPath;
+    }
+
+    private string ApplyTemplate(string template)
+    {
+        var ctx = _httpContextAccessor.HttpContext;
+        var req = ctx?.Request;
+
+        var scheme = req?.Headers["X-Forwarded-Proto"].FirstOrDefault()
+                     ?? req?.Scheme
+                     ?? "http";
+
+        var hostHeader = req?.Headers["X-Forwarded-Host"].FirstOrDefault()
+                         ?? req?.Host.Value
+                         ?? "localhost";
+
+        var hostOnly = hostHeader.Contains(':')
+            ? hostHeader.Split(':')[0]
+            : hostHeader;
+
+        int? portNumber = null;
+        var forwardedPort = req?.Headers["X-Forwarded-Port"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedPort) && int.TryParse(forwardedPort, out var fp))
+        {
+            portNumber = fp;
+        }
+        else if (req?.Host.Port is int p)
+        {
+            portNumber = p;
+        }
+
+        var port = "";
+        if (portNumber.HasValue)
+        {
+            var isDefault =
+                (scheme == "http" && portNumber.Value == 80) ||
+                (scheme == "https" && portNumber.Value == 443);
+
+            port = isDefault ? "" : $":{portNumber.Value}";
+        }
+
+        var pathBase = req?.PathBase.HasValue == true ? req.PathBase.Value! : "";
+
+        var forwardedPrefix = req?.Headers["X-Forwarded-Prefix"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedPrefix))
+        {
+            if (!forwardedPrefix.StartsWith("/"))
+            {
+                forwardedPrefix = "/" + forwardedPrefix;
+            }
+            pathBase = forwardedPrefix + pathBase;
+        }
+
+        return template
+            .Replace("{scheme}", scheme)
+            .Replace("{host}", hostOnly)
+            .Replace("{port}", port)
+            .Replace("{pathBase}", pathBase);
     }
 }
