@@ -28,6 +28,7 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 |--|--|--|
 | [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.svg?style=flat)](https://www.nuget.org/packages/BlazorTS) | Core runtime library |
 | [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | Source generator library |
+| [`BlazorTS.Assets`](https://www.nuget.org/packages/BlazorTS.Assets) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.Assets.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.Assets) | Asset management with dynamic URLs |
 | [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript compilation support |
 
 ### Installation and Configuration
@@ -38,6 +39,7 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 ```bash
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
+dotnet add package BlazorTS.Assets # (optional)
 dotnet add package Microsoft.TypeScript.MSBuild # (optional)
 ```
 
@@ -45,6 +47,7 @@ dotnet add package Microsoft.TypeScript.MSBuild # (optional)
 ```powershell
 Install-Package BlazorTS
 Install-Package BlazorTS.SourceGenerator
+Install-Package BlazorTS.Assets # (optional)
 Install-Package Microsoft.TypeScript.MSBuild # (optional)
 ```
 
