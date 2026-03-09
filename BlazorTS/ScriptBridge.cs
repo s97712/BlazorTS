@@ -58,19 +58,6 @@ public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
     private static readonly string PkgName = Assembly.GetEntryAssembly()?
         .GetName().Name!;
     
-    /// <summary>
-    /// Resolves the JavaScript path for a Blazor Razor component.
-    /// </summary>
-    /// <param name="componentType">The Blazor component type</param>
-    /// <returns>The Razor component's JavaScript file path</returns>
-    public static string ResolveRazorJS(Type componentType)
-    {
-        var name = Regex.Replace(componentType.FullName!, $"^{PkgName}.", "")
-            !.Replace(".", "/");
-        
-        var path = $"/{name}.razor.js";
-        return path;
-    }
 
     /// <summary>
     /// Resolves the compiled JavaScript path for TypeScript modules using the injected resolver.
@@ -81,6 +68,17 @@ public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
     public string ResolveNS(Type tsType, string suffix)
     {
         return resolver.ResolveNS(tsType, suffix);
+    }
+
+    /// <summary>
+    /// Resolves the compiled JavaScript path using a logical full type name.
+    /// </summary>
+    /// <param name="fullName">The logical full type name</param>
+    /// <param name="suffix">File suffix like ".razor" or ""</param>
+    /// <returns>The compiled JavaScript file path</returns>
+    public string ResolveNS(string fullName, string suffix)
+    {
+        return resolver.ResolveNS(fullName, suffix);
     }
 
     private async ValueTask<TValue> Invoke<TValue>(string moduleName, string methodName, params object?[]? args)

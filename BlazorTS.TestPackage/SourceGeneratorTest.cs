@@ -29,8 +29,8 @@ namespace BlazorTS.TestPackage
         [Fact]
         public void Test_Generated_Functions_Exist_For_TestComponent()
         {
-            var testComponentType = typeof(TestComponent);
-            var tsInteropType = testComponentType.GetNestedType("TSInterop");
+            var assembly = Assembly.GetExecutingAssembly();
+            var tsInteropType = assembly.GetType("BlazorTS.TestPackage.TestComponentTSInterop");
             Assert.NotNull(tsInteropType);
 
             var methods = tsInteropType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);

@@ -10,61 +10,37 @@
 
 ---
 
-BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsing** to analyze TypeScript code, automatically generating C# wrapper code that enables you to call TypeScript functions directly in Blazor applications without manually writing JavaScript interop code.
+BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsing** to analyze TypeScript code and automatically generate strongly typed C# wrappers, allowing Blazor applications to call TypeScript functions directly without hand-written JavaScript interop glue.
 
 ## ✨ Features
 
-- 🔄 **Auto Generation**: Uses Tree-sitter syntax tree parsing to analyze TypeScript code and automatically generates C# wrapper code
-- 🎯 **Type Safety**: Complete type mapping and compile-time checking
-- 🚀 **Zero Configuration**: Minimal configuration, works out of the box
-- 🔧 **Smart Dependencies**: Automatic service resolution and registration
-- 🌳 **Precise Parsing**: Uses Tree-sitter for accurate TypeScript syntax structure parsing
+- 🔄 **Compile-time generation**: Analyze TypeScript files and generate C# wrappers automatically
+- 🎯 **Type safety**: Strongly typed C# APIs for exported TypeScript functions
+- 🚀 **Zero configuration**: Minimal setup, works out of the box
+- 🔧 **Automatic registration**: Generated interop services are registered through `AddBlazorTSScripts()`
+- 🌳 **Precise parsing**: Uses Tree-sitter for accurate TypeScript syntax handling
 
 ## 📦 Installation
 
-**Core Libraries**
+### Core Libraries
 
-| NuGet Package | NuGet Version | Description |
-|--|--|--|
-| [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.svg?style=flat)](https://www.nuget.org/packages/BlazorTS) | Core runtime library |
-| [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | Source generator library |
-| [`BlazorTS.Assets`](https://www.nuget.org/packages/BlazorTS.Assets) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.Assets.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.Assets) | Asset management with dynamic URLs |
-| [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript compilation support |
+| NuGet Package | Description |
+|--|--|
+| [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | Core runtime library |
+| [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | Source generator library |
+| [`BlazorTS.Assets`](https://www.nuget.org/packages/BlazorTS.Assets) | Asset management with dynamic URLs |
+| [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript compilation support |
 
 ### Installation and Configuration
 
-**1. Install NuGet Packages**
-
-**Install via .NET CLI**
 ```bash
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
-dotnet add package BlazorTS.Assets # (optional)
-dotnet add package Microsoft.TypeScript.MSBuild # (optional)
+dotnet add package BlazorTS.Assets # optional
+dotnet add package Microsoft.TypeScript.MSBuild # optional
 ```
-
-**Install via Package Manager Console**
-```powershell
-Install-Package BlazorTS
-Install-Package BlazorTS.SourceGenerator
-Install-Package BlazorTS.Assets # (optional)
-Install-Package Microsoft.TypeScript.MSBuild # (optional)
-```
-
-> **Alternative:** If you prefer not to use `Microsoft.TypeScript.MSBuild`, you can manually add a `Target` to your `.csproj` file to invoke the TypeScript compiler (`npx tsc`).
->
-> ```xml
-> <Target Name="CompileTypeScript" BeforeTargets="Build">
->   <Exec Command="npx tsc" />
-> </Target>
-> ```
-
-**2. Configure Project File**
-
-Add the following to your `.csproj` file to ensure TypeScript files are processed correctly:
 
 ```xml
-<!-- Add .razor.ts and .entry.ts files as additional files -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
   <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
@@ -73,76 +49,84 @@ Add the following to your `.csproj` file to ensure TypeScript files are processe
 
 ## 🚀 File Naming Conventions
 
-BlazorTS supports two types of TypeScript files to provide a flexible modularization scheme:
-
 ### 1. Razor Component Scripts (`.razor.ts`)
 
-These files are bound to a specific Razor component for component-level script logic.
+These files are bound to a specific Razor component.
 
-- **Naming Convention**: `MyComponent.razor.ts` must be paired with `MyComponent.razor`.
-- **Generated Output**: Automatically generates a `partial class` for `MyComponent` and injects a `TSInterop` instance named `Scripts`.
-- **Usage**: Directly call TypeScript functions via the `@inject`ed `Scripts` property within the component.
+- **Naming**: `MyComponent.razor.ts` must pair with `MyComponent.razor`
+- **Generated output**:
+  - a `partial class` for the component
+  - a top-level `*TSInterop` service for that component
+  - an auto-injected `Scripts` property on the component
+- **Usage**: call exported TypeScript functions through the generated `Scripts` property
 
-**Example:**
+**Example**
 
-**`Components/Pages/Counter.razor.ts`**
 ```typescript
-// Dedicated module for the Counter.razor component
+// Components/Pages/Counter.razor.ts
 export function increment(count: number): number {
-    console.log("Incrementing count from TypeScript module!");
     return count + 1;
 }
 ```
 
-**`Components/Pages/Counter.razor`**
 ```csharp
 @page "/counter"
-@rendermode InteractiveServer
 
 @code {
     private int currentCount = 0;
 
     private async Task HandleClick()
     {
-        // Directly call the `Scripts` property injected by BlazorTS
         currentCount = await Scripts.increment(currentCount);
+    }
+}
+```
+
+Conceptually, BlazorTS generates code like this:
+
+```csharp
+public partial class Counter
+{
+    [Inject] public CounterTSInterop Scripts { get; set; } = null!;
+}
+
+public class CounterTSInterop(ScriptBridge invoker)
+{
+    private readonly string url = invoker.ResolveNS("MyApp.Components.Pages.Counter", ".razor");
+
+    public async Task<double> increment(double count)
+    {
+        return await invoker.InvokeAsync<double>(url, "increment", new object?[] { count });
     }
 }
 ```
 
 ### 2. Standalone Feature Modules (`.entry.ts`)
 
-These files are used to define common TypeScript modules that can be shared across multiple components or services.
+These files define reusable TypeScript modules that can be injected as services.
 
-- **Naming Convention**: `my-utils.entry.ts` or `api.entry.ts`.
-- **Generated Output**: Generates a standard C# class (e.g., `MyUtils` or `Api`) that needs to be manually registered and injected.
-- **Usage**: Register the service in `Program.cs` and use it where needed via dependency injection.
+- **Naming**: `my-utils.entry.ts` or `api.entry.ts`
+- **Generated output**: a normal C# service class
+- **Usage**: register with `AddBlazorTSScripts()` and inject where needed
 
-**Example:**
-
-**`Services/Formatter.entry.ts`**
 ```typescript
+// Services/Formatter.entry.ts
 export function formatCurrency(amount: number): string {
     return `$${amount.toFixed(2)}`;
 }
 ```
 
-**`Program.cs`**
 ```csharp
-// Automatically finds and registers all services generated from .entry.ts files
 builder.Services.AddBlazorTSScripts();
 ```
 
-**`MyComponent.razor`**
 ```csharp
 @inject TestApp.Services.Formatter Formatter
 
-<p>@Formatter.formatCurrency(123.45)</p>
+<p>@await Formatter.formatCurrency(123.45)</p>
 ```
 
-### 2. Configure `tsconfig.json`
-
-To enable Blazor to find the compiled JS file, we need to configure `tsconfig.json` to preserve the directory structure.
+## Configure `tsconfig.json`
 
 ```json
 {
@@ -160,69 +144,29 @@ To enable Blazor to find the compiled JS file, we need to configure `tsconfig.js
   ]
 }
 ```
-> With this configuration, `Components/Pages/Counter.razor.ts` will be compiled to `wwwroot/js/Components/Pages/Counter.js`.
 
-### 3. Register Services
-
-Register the BlazorTS services in `Program.cs`.
+## Register Services
 
 ```csharp
-// Program.cs
 using BlazorTS.SourceGenerator.Extensions;
-using Microsoft.Extensions.DependencyInjection;
 
-// Register BlazorTS core services (includes default path resolver)
 builder.Services.AddBlazorTS();
-// Automatically finds and registers all services generated from .entry.ts files
 builder.Services.AddBlazorTSScripts();
 ```
 
-### 4. Run and See the Result
-
-Now, run your Blazor application. When you click the button:
-1.  The `HandleClick` method in `Counter.razor` is called.
-2.  It directly accesses the `Scripts` property, which is automatically generated by BlazorTS.
-3.  The `Scripts.increment` call executes the corresponding function in `Counter.razor.ts`.
-
-Behind the scenes, BlazorTS generates the following `partial class` code for you and merges it with your `Counter.razor.cs`:
-
-```csharp
-// Code automatically generated by BlazorTS (conceptual)
-public partial class Counter
-{
-    // Automatically injects the TSInterop instance
-    [Inject]
-    public TSInterop Scripts { get; set; } = null!;
-
-    // Wrapper class responsible for JS interop
-    public class TSInterop(ScriptBridge invoker)
-    {
-        // ... implementation details ...
-        public async Task<double> increment(double count)
-        {
-            // ... calls JS ...
-        }
-    }
-}
-```
-
-In this way, BlazorTS perfectly integrates the TypeScript development experience with the Blazor component model, achieving true modularity.
-
 ## 🛠️ Custom Path Resolution
 
-BlazorTS maps `MyApp.Components.Counter` to `/js/Components/Counter.js` by default.
-
-To customize paths, specify when registering services:
+By default, BlazorTS maps a logical component or module name to `/js/...`.
 
 ```csharp
-// Using custom function
 builder.Services.AddBlazorTS((type, suffix) =>
 {
     var path = type.FullName!.Replace('.', '/');
     return $"/scripts/{path}{suffix}.js";
 });
+```
 
-// Using custom resolver class
+```csharp
 public class CustomResolver : INSResolver
 {
     public string ResolveNS(Type tsType, string suffix)
@@ -230,28 +174,22 @@ public class CustomResolver : INSResolver
         var path = tsType.FullName!.Replace('.', '/');
         return $"/lib/{path}{suffix}.js";
     }
+
+    public string ResolveNS(string fullName, string suffix)
+    {
+        var path = fullName.Replace('.', '/');
+        return $"/lib/{path}{suffix}.js";
+    }
 }
+
 builder.Services.AddBlazorTS<CustomResolver>();
 ```
 
 ### Suffix Parameter
 
-The `ResolveNS` method now includes a `suffix` parameter to distinguish between different module types:
-
-- **Razor Components** (`.razor.ts` files): Use suffix `".razor"`
-  - `Component.razor.ts` → `/js/Component.razor.js`
-- **Entry Modules** (`.entry.ts` files): Use suffix `".entry"`
-  - `Module.entry.ts` → `/js/Module.entry.js`
-- **Custom Suffixes**: Any string can be used as suffix
-
-**Examples:**
-```csharp
-// The default resolver automatically handles suffixes
-var resolver = new DefaultNSResolver();
-resolver.ResolveNS(typeof(MyComponent), ".razor");  // "/js/MyComponent.razor.js"
-resolver.ResolveNS(typeof(MyModule), ".entry");     // "/js/MyModule.entry.js"
-resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
-```
+- Razor components (`.razor.ts`) use suffix `".razor"`
+- Entry modules (`.entry.ts`) use suffix `".entry"`
+- Other module styles can use any custom suffix
 
 ## 🔧 Supported Types
 
@@ -266,14 +204,14 @@ resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
 
 ## 📖 Documentation
 
-- [Development Guide](docs/development-guide.md) - Detailed development and build instructions
-- [Supported TypeScript Syntax](docs/supported-typescript-syntax.md) - Complete syntax support list
-- [DLL Path Resolution Mechanism](docs/dll-resolver-mechanism.md) - Advanced configuration options
-- [中文说明](README_CN.md) - Chinese version of this README
+- [Development Guide](docs/development-guide.md)
+- [Supported TypeScript Syntax](docs/supported-typescript-syntax.md)
+- [DLL Path Resolution Mechanism](docs/dll-resolver-mechanism.md)
+- [中文说明](README_CN.md)
 
 ## 🤝 Contributing
 
-Issues and Pull Requests are welcome!
+Issues and Pull Requests are welcome.
 
 ## 📄 License
 

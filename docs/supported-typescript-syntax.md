@@ -1,23 +1,34 @@
 # BlazorTS 支持的 TypeScript 语法
 
-本文档列出了 BlazorTS 源代码生成器当前支持的 TypeScript 函数语法形式。
+本文档列出了 BlazorTS 源代码生成器当前支持的 TypeScript 导出函数语法，以及这些函数在当前生成模型中的映射方式。
+
+## 当前生成模型
+
+BlazorTS 目前有两类生成目标：
+
+1. **`.razor.ts`**：
+   - 生成组件对应的 `partial class`
+   - 生成顶层 `*TSInterop` 互操作类
+   - 在组件中自动注入 `Scripts`
+
+2. **`.entry.ts`**：
+   - 生成普通可注入服务类
+
+不论使用哪种文件类型，函数提取规则是一致的，区别只在于最终 C# 包装类的落点不同。
 
 ## ✅ 支持的导出函数语法
 
 ### 1. 标准函数声明
 
 ```typescript
-// 基本函数
 export function add(a: number, b: number): number {
     return a + b;
 }
 
-// 无返回类型（默认为 void）
 export function log(message: string) {
     console.log(message);
 }
 
-// 显式 void 返回类型
 export function initialize(): void {
     console.log('initialized');
 }
@@ -26,12 +37,10 @@ export function initialize(): void {
 ### 2. 异步函数
 
 ```typescript
-// 异步函数
 export async function fetchData(url: string): Promise<any> {
     return fetch(url);
 }
 
-// 异步 void 函数
 export async function delay(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -40,35 +49,27 @@ export async function delay(ms: number): Promise<void> {
 ### 3. 箭头函数导出
 
 ```typescript
-// 基本箭头函数
 export const multiply = (a: number, b: number): number => a * b;
 
-// 带类型注解的箭头函数
 export const greet = (name: string): string => {
     return `Hello, ${name}!`;
 };
 
-// 异步箭头函数
 export const fetchUser = async (id: number): Promise<User> => {
     return await api.getUser(id);
 };
 
-// 无参数箭头函数
 export const getCurrentTime = (): Date => new Date();
-
-// 单参数箭头函数（无括号）
 export const double = (x: number) => x * 2;
 ```
 
 ### 4. 函数表达式导出
 
 ```typescript
-// 命名函数表达式
 export const processData = function(data: any[]): any[] {
     return data.filter(item => item.isValid);
 };
 
-// 匿名函数表达式
 export const validator = function(input: string): boolean {
     return input.length > 0;
 };
@@ -77,7 +78,6 @@ export const validator = function(input: string): boolean {
 ### 5. 参数类型支持
 
 ```typescript
-// 基本类型
 export function basicTypes(
     str: string,
     num: number,
@@ -85,7 +85,6 @@ export function basicTypes(
     obj: any
 ): void { }
 
-// 可选参数
 export function withOptional(
     required: string,
     optional?: number
@@ -93,12 +92,10 @@ export function withOptional(
     return optional !== undefined;
 }
 
-// 联合类型
 export function unionTypes(value: string | number): string {
     return String(value);
 }
 
-// 泛型（基本支持）
 export function generic<T>(value: T): T {
     return value;
 }
@@ -106,12 +103,11 @@ export function generic<T>(value: T): T {
 
 ## ❌ 不支持的语法
 
-以下语法形式**不会**被提取：
+以下语法形式不会被提取：
 
 ### 1. 非导出函数
 
 ```typescript
-// 这些函数会被忽略
 function privateFunction() { }
 async function privateAsync() { }
 const privateArrow = () => { };
@@ -121,7 +117,6 @@ const privateArrow = () => { };
 
 ```typescript
 class MyClass {
-    // 类方法不会被提取
     method() { }
     async asyncMethod() { }
 }
@@ -131,7 +126,6 @@ class MyClass {
 
 ```typescript
 namespace MyNamespace {
-    // 命名空间内的函数不会被提取
     export function namespacedFunction() { }
 }
 ```
@@ -139,14 +133,12 @@ namespace MyNamespace {
 ### 4. 重新导出
 
 ```typescript
-// 重新导出语法不支持
 export { someFunction } from './other-module';
 ```
 
-### 5. 默认导出（部分限制）
+### 5. 默认导出（有限支持）
 
 ```typescript
-// 默认导出函数有限支持
 export default function defaultFunction() { }
 ```
 
@@ -157,54 +149,70 @@ export default function defaultFunction() { }
 | `string` | `string` | 字符串 |
 | `number` | `double` | 数字 |
 | `boolean` | `bool` | 布尔值 |
-| `any` | `object` | 任意类型 |
+| `any` | `object?` | 任意类型 |
 | `void` | `Task` | 无返回值 |
 | `Promise<T>` | `Task<T>` | 异步返回 |
 | `Promise<void>` | `Task` | 异步无返回值 |
 
 ## 🔧 最佳实践
 
-1. **明确导出**：只有使用 `export` 关键字的函数会被生成
-2. **类型注解**：尽量提供完整的类型注解以获得更好的 C# 类型映射
-3. **参数命名**：使用有意义的参数名，它们会保留在生成的 C# 代码中
-4. **返回类型**：明确指定返回类型，避免依赖类型推断
+1. 仅导出需要暴露给 C# 的函数。
+2. 尽量提供明确的类型注解，以获得稳定的 C# 映射结果。
+3. 使用清晰的参数名，它们会直接出现在生成的 C# 方法签名中。
+4. 对返回类型进行显式声明，避免不必要的推断差异。
 
 ## 📖 示例
 
-完整的 TypeScript 文件示例：
+### Razor 组件脚本
 
-**`MyComponent.razor.ts`**
 ```typescript
-// ✅ 支持的函数都会被生成为 C# 方法
-
+// MyComponent.razor.ts
 export function showMessage(message: string): void {
     alert(message);
 }
 ```
 
-**`utils.entry.ts`**
+概念化生成结果：
+
+```csharp
+public partial class MyComponent
+{
+    [Inject] public MyComponentTSInterop Scripts { get; set; } = null!;
+}
+
+public class MyComponentTSInterop(ScriptBridge invoker)
+{
+    private readonly string url = invoker.ResolveNS("MyApp.Components.MyComponent", ".razor");
+
+    public async Task showMessage(string message)
+    {
+        await invoker.InvokeAsync<object?>(url, "showMessage", new object?[] { message });
+    }
+}
+```
+
+### Entry 模块
+
 ```typescript
+// utils.entry.ts
 export function calculateTotal(items: number[]): number {
     return items.reduce((sum, item) => sum + item, 0);
 }
 
 export async function saveData(data: any): Promise<boolean> {
     try {
-        // await api.save(data);
         return true;
     } catch {
         return false;
     }
 }
-
-export const formatCurrency = (amount: number): string => {
-    return `$${amount.toFixed(2)}`;
-};
-
-// ❌ 这个函数不会被生成
-function helperFunction() {
-    return 'internal use only';
-}
 ```
 
-生成的 C# 代码将包含对应的方法签名和调用逻辑。
+概念化生成结果：
+
+```csharp
+public class Utils(ScriptBridge invoker)
+{
+    private readonly string url = invoker.ResolveNS(typeof(Utils), ".entry");
+}
+```

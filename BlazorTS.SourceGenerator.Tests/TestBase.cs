@@ -40,14 +40,27 @@ public abstract class TestBase
         ResolveGenerator generator,
         IEnumerable<AdditionalText> additionalTexts,
         string projectDir = "/test/project/",
-        string rootNamespace = "TestApp")
+        string rootNamespace = "TestApp",
+        params string[] sourceTexts)
     {
-        var compilation = CSharpCompilation.Create("test");
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+        var syntaxTrees = sourceTexts.Select(source => CSharpSyntaxTree.ParseText(source, parseOptions)).ToArray();
+        var compilation = CSharpCompilation.Create(
+            "test",
+            syntaxTrees,
+            new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(BlazorTS.ScriptBridge).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Microsoft.AspNetCore.Components.ComponentBase).Assembly.Location)
+            });
         var driver = CreateGeneratorDriver(generator, additionalTexts, projectDir, rootNamespace);
-        
+
         var result = driver.RunGenerators(compilation);
         var runResult = result.GetRunResult();
-        
+
         return runResult.Results[0];
     }
 
@@ -99,7 +112,7 @@ public abstract class TestBase
         {
             var assembly = Assembly.GetExecutingAssembly();
             var attributes = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
-            
+
             foreach (var attr in attributes)
             {
                 if (attr.Key == "TypeScriptParserNativePath")
@@ -112,7 +125,7 @@ public abstract class TestBase
         {
             // 忽略异常，返回默认测试路径
         }
-        
+
         // 使用一个非空的默认测试路径，确保生成器不会因空路径而跳过处理
         return "/test/native/";
     }
@@ -154,10 +167,10 @@ public class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
 
     public override AnalyzerConfigOptions GlobalOptions => new TestAnalyzerConfigOptions(_globalOptions);
 
-    public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => 
+    public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) =>
         new TestAnalyzerConfigOptions(new Dictionary<string, string>());
 
-    public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => 
+    public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) =>
         new TestAnalyzerConfigOptions(new Dictionary<string, string>());
 }
 

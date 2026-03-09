@@ -1,97 +1,29 @@
-﻿using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis;
-using System.Text;
+using Microsoft.CodeAnalysis.Text;
 using MoreLinq;
-using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using BlazorTS.SourceGenerator;
 
 namespace BlazorTS
 {
+    internal sealed record ComponentModel(
+        string ClassName,
+        string NamespaceName,
+        bool IsRazorComponent,
+        string Content,
+        string TypeParameterListText,
+        string InteropClassName,
+        string? WhereClauseText,
+        string FullName);
 
     [Generator]
     public class ResolveGenerator : IIncrementalGenerator
     {
-
         private static bool _resolverInitialized;
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-
-            // 首先显示native path信息 - 作为第一个RegisterSourceOutput确保能看到
-            context.RegisterSourceOutput(context.CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
-            {
-                var (compilation, optionsProvider) = data;
-                var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, optionsProvider);
-                Helper.Log(spc, $"TypeScript Parser Native Path: {nativePath}");
-
-                // 检查nativePath是否有效，如果无效则跳过处理
-                if (string.IsNullOrEmpty(nativePath))
-                {
-                    Helper.Log(spc, $"Skipping TypeScript processing - invalid nativePath: {nativePath}");
-                    return;
-                }
-
-                if (!_resolverInitialized)
-                {
-                    try
-                    {
-                        var dllResolver = new DllResolver(nativePath);
-                        NativeLibrary.SetDllImportResolver(typeof(TypeScriptParser.Parser).Assembly,
-                            (libraryName, assembly, searchPath) => dllResolver.Resolve(libraryName, assembly, searchPath));
-                        _resolverInitialized = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Helper.Log(spc, $"SetupNativeLibraryResolver failed : {ex.Message}");
-                    }
-                }
-                
-                // 显示程序集位置信息
-                var assembly = Assembly.GetExecutingAssembly();
-                Helper.Log(spc, $"Source Generator Assembly Location: {assembly.Location}");
-                
-                // 检查native库文件是否存在
-                var exists = Directory.Exists(nativePath);
-                if (exists)
-                {
-                    try
-                    {
-                        var files = Directory.GetFiles(nativePath, "*.*");
-                        Helper.Log(spc, $"Files in native path: {string.Join(", ", files.Select(Path.GetFileName))}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Helper.Log(spc, $"Error listing native path files: {ex.Message}");
-                    }
-                }
-            });
-
-            // TypeScript文件处理
-            var tsFilesProvider = context
-                .AdditionalTextsProvider
-                .Where(static file => file.Path.EndsWith(".razor.ts", StringComparison.OrdinalIgnoreCase) || file.Path.EndsWith(".entry.ts", StringComparison.OrdinalIgnoreCase))
-                .Select(static (file, _) => file.Path);
-            
-            // 注册诊断输出
-            context.RegisterSourceOutput(tsFilesProvider.Collect().Combine(context.CompilationProvider).Combine(context.AnalyzerConfigOptionsProvider), (spc, data) =>
-            {
-                var ((paths, compilation), optionsProvider) = data;
-                var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, optionsProvider);
-                
-                if (string.IsNullOrEmpty(nativePath))
-                {
-                    Helper.Log(spc, $"Skipping TypeScript files processing - invalid nativePath: {nativePath}");
-                    return;
-                }
-
-                Helper.Log(spc, $"Found {paths.Length} BlazorTS files");
-                foreach (var path in paths)
-                {
-                    Helper.Log(spc, $"BlazorTS file: {path}");
-                }
-            });
-
-            // 真正业务逻辑
             var metaProvider = context.AnalyzerConfigOptionsProvider.Combine(context.CompilationProvider)
                 .Select((data, _) =>
                 {
@@ -99,71 +31,75 @@ namespace BlazorTS
                     options.GlobalOptions.TryGetValue("build_property.ProjectDir", out var dir);
                     options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns);
                     var nativePath = DllResolver.GetTypeScriptParserNativePath(compilation, options);
-                    return (dir, ns, nativePath);
+                    return (dir, ns, nativePath, compilation);
                 });
 
-            var razorJsFiles = context
+            var tsFiles = context
                 .AdditionalTextsProvider
                 .Where(static file => file.Path.EndsWith(".razor.ts", StringComparison.OrdinalIgnoreCase) || file.Path.EndsWith(".entry.ts", StringComparison.OrdinalIgnoreCase))
                 .Combine(metaProvider);
 
-            var razorContents = razorJsFiles
+            var componentModels = tsFiles
                 .Select((info, cancellationToken) =>
                 {
                     var (additionalText, meta) = info;
-                    var (className, namespaceName, isRazorComponent) = ExtractFileInfo(additionalText.Path, meta.ns ?? string.Empty, meta.dir ?? string.Empty);
+                    EnsureNativeResolver(meta.nativePath);
+
                     var content = additionalText.GetText(cancellationToken)?.ToString() ?? string.Empty;
-                    return (ClassName: className, NamespaceName: namespaceName, IsRazorComponent: isRazorComponent, Content: content);
+                    return CreateComponentModel(additionalText.Path, content, meta.ns ?? string.Empty, meta.dir ?? string.Empty, meta.compilation);
                 })
                 .Collect();
 
-
-            context.RegisterSourceOutput(razorContents.Combine(metaProvider), (spc, data) =>
+            context.RegisterSourceOutput(componentModels.Combine(metaProvider), (spc, data) =>
             {
                 var (files, meta) = data;
-                var nativePath = meta.nativePath;
-
-                if (string.IsNullOrEmpty(nativePath))
+                if (string.IsNullOrEmpty(meta.nativePath))
                 {
-                    Helper.Log(spc, $"Skipping BlazorTS processing - invalid nativePath: {nativePath}");
                     return;
                 }
 
-                Helper.Log(spc, $"Processing {files.Length} BlazorTS files with nativePath: {nativePath}");
-
-                var entryModuleNames = new List<string>();
-                var razorInteropTypeNames = new List<string>();
-
+                var injectableTypeNames = new List<string>(files.Length);
                 foreach (var file in files)
                 {
-                    var fullName = Generate(spc, file.ClassName, file.NamespaceName, file.IsRazorComponent, file.Content);
-                    if (!file.IsRazorComponent)
-                    {
-                        entryModuleNames.Add(fullName);
-                    }
-                    else
-                    {
-                        // Register the nested TSInterop for Razor components as injectable services
-                        razorInteropTypeNames.Add($"{fullName}.TSInterop");
-                    }
+                    injectableTypeNames.Add(Generate(spc, file));
                 }
 
-                // Always generate the DI extension, even if there are no TS files.
-                var extensionCode = GenerateExtension(spc, entryModuleNames, razorInteropTypeNames);
-                var extensionFileName = "BlazorTS.SourceGenerator.Extensions.ServiceCollectionExtensions.g.cs";
-                spc.AddSource(extensionFileName, SourceText.From(extensionCode, Encoding.UTF8));
-                Helper.Log(spc, $"Generated service collection extension for {entryModuleNames.Count} entry modules and {razorInteropTypeNames.Count} razor interop types.");
-
+                // BLAZORTS-DESIGN-GUARD: 泛型仅作用于 Razor partial class，
+                // 互操作类型统一提升为顶层可注入服务，避免让 DI 服务类型被组件泛型污染。
+                var extensionCode = GenerateExtension(injectableTypeNames);
+                spc.AddSource(
+                    "BlazorTS.SourceGenerator.Extensions.ServiceCollectionExtensions.g.cs",
+                    SourceText.From(extensionCode, Encoding.UTF8));
             });
-
         }
 
-        private static (string className, string namespaceName, bool isRazorComponent) ExtractFileInfo(string filePath, string rootNamespace, string projectDir)
+        private static void EnsureNativeResolver(string? nativePath)
+        {
+            if (_resolverInitialized || string.IsNullOrEmpty(nativePath))
+            {
+                return;
+            }
+
+            try
+            {
+                var dllResolver = new DllResolver(nativePath);
+                NativeLibrary.SetDllImportResolver(
+                    typeof(TypeScriptParser.Parser).Assembly,
+                    (libraryName, assembly, searchPath) => dllResolver.Resolve(libraryName, assembly, searchPath));
+                _resolverInitialized = true;
+            }
+            catch
+            {
+                // Native resolver setup is best-effort here; downstream parsing failures will surface naturally.
+            }
+        }
+
+        private static ComponentModel CreateComponentModel(string filePath, string content, string rootNamespace, string projectDir, Compilation compilation)
         {
             var relativePath = Path.GetRelativePath(projectDir, filePath);
             var fileName = Path.GetFileName(relativePath);
             var directoryPath = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '.');
-            
+
             var namespaceParts = new List<string> { rootNamespace };
             if (!string.IsNullOrEmpty(directoryPath) && directoryPath != ".")
             {
@@ -171,95 +107,186 @@ namespace BlazorTS
             }
             var finalNamespace = string.Join(".", namespaceParts);
 
-            if (fileName.EndsWith(".razor.ts"))
+            if (fileName.EndsWith(".razor.ts", StringComparison.OrdinalIgnoreCase))
             {
                 var className = fileName[0..^".razor.ts".Length];
-                return (className, finalNamespace, isRazorComponent: true);
+                var componentType = ResolveComponentType(compilation, finalNamespace, className);
+                var typeParameterListText = BuildTypeParameterList(componentType);
+                var whereClauseText = BuildWhereClause(componentType);
+                var interopClassName = $"{className}TSInterop";
+                var fullName = $"{finalNamespace}.{className}";
+
+                return new ComponentModel(
+                    className,
+                    finalNamespace,
+                    true,
+                    content,
+                    typeParameterListText,
+                    interopClassName,
+                    whereClauseText,
+                    fullName);
             }
 
-            if (fileName.EndsWith(".entry.ts"))
+            if (fileName.EndsWith(".entry.ts", StringComparison.OrdinalIgnoreCase))
             {
                 var className = fileName[0..^".entry.ts".Length];
-                return (className, finalNamespace, isRazorComponent: false);
+                var fullName = $"{finalNamespace}.{className}";
+                return new ComponentModel(
+                    className,
+                    finalNamespace,
+                    false,
+                    content,
+                    string.Empty,
+                    className,
+                    null,
+                    fullName);
             }
 
             throw new InvalidOperationException($"Unsupported file type: {filePath}");
         }
 
-        private static string Generate(SourceProductionContext spc, string className, string ns, bool isRazorComponent, string content)
+        private static INamedTypeSymbol? ResolveComponentType(Compilation compilation, string namespaceName, string className)
         {
-            var methods = MethodExtractor.Extract(content);
-            Helper.Log(spc, $"Generating wrapper for '{ns}.{className}' with {methods.Count()} methods. IsRazorComponent: {isRazorComponent}");
-
-            var code = GenerateWrapper(ns, className, methods, isRazorComponent);
-            var fileHint = isRazorComponent ? $"{ns}.{className}.razor.g.cs" : $"{ns}.{className}.entry.g.cs";
-            spc.AddSource(fileHint, SourceText.From(code, Encoding.UTF8));
-            
-            return $"{ns}.{className}";
+            return compilation.GetSymbolsWithName(className, SymbolFilter.Type)
+                .OfType<INamedTypeSymbol>()
+                .FirstOrDefault(symbol => symbol.Name == className && symbol.ContainingNamespace?.ToDisplayString() == namespaceName);
         }
 
-        private static string GenerateWrapper(string ns, string className, IEnumerable<TSFunction> methods, bool isRazorComponent)
+        private static string BuildTypeParameterList(INamedTypeSymbol? componentType)
         {
-            var fullName = $"{ns}.{className}";
-
-            if (isRazorComponent)
+            if (componentType is null || componentType.TypeParameters.Length == 0)
             {
+                return string.Empty;
+            }
+
+            return $"<{string.Join(", ", componentType.TypeParameters.Select(parameter => parameter.Name))}>";
+        }
+
+        private static string? BuildWhereClause(INamedTypeSymbol? componentType)
+        {
+            if (componentType is null || componentType.TypeParameters.Length == 0)
+            {
+                return null;
+            }
+
+            var clauses = componentType.TypeParameters
+                .Select(BuildWhereClause)
+                .Where(static clause => !string.IsNullOrWhiteSpace(clause))
+                .ToArray();
+
+            return clauses.Length == 0 ? null : string.Join(" ", clauses);
+        }
+
+        private static string? BuildWhereClause(ITypeParameterSymbol parameter)
+        {
+            var constraints = new List<string>();
+
+            if (parameter.HasReferenceTypeConstraint)
+            {
+                constraints.Add(parameter.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated ? "class?" : "class");
+            }
+
+            if (parameter.HasValueTypeConstraint)
+            {
+                constraints.Add("struct");
+            }
+
+            if (parameter.HasNotNullConstraint)
+            {
+                constraints.Add("notnull");
+            }
+
+            if (parameter.HasUnmanagedTypeConstraint)
+            {
+                constraints.Add("unmanaged");
+            }
+
+            constraints.AddRange(parameter.ConstraintTypes.Select(type => type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+
+            if (parameter.HasConstructorConstraint)
+            {
+                constraints.Add("new()");
+            }
+
+            return constraints.Count == 0 ? null : $"where {parameter.Name} : {string.Join(", ", constraints)}";
+        }
+
+        private static string Generate(SourceProductionContext spc, ComponentModel component)
+        {
+            var methods = MethodExtractor.Extract(component.Content).ToArray();
+            var code = GenerateWrapper(component, methods);
+            var hintName = component.IsRazorComponent
+                ? $"{component.NamespaceName}.{component.ClassName}.razor.g.cs"
+                : $"{component.NamespaceName}.{component.ClassName}.entry.g.cs";
+            spc.AddSource(hintName, SourceText.From(code, Encoding.UTF8));
+
+            return component.IsRazorComponent ? $"{component.NamespaceName}.{component.InteropClassName}" : component.FullName;
+        }
+
+        private static string GenerateWrapper(ComponentModel component, IEnumerable<TSFunction> methods)
+        {
+            var methodsCode = methods.Select(GenerateMethod).ToDelimitedString("\n");
+
+            if (component.IsRazorComponent)
+            {
+                var whereClauseSuffix = string.IsNullOrWhiteSpace(component.WhereClauseText)
+                    ? string.Empty
+                    : $"\n    {component.WhereClauseText}";
+
                 return $@"#nullable enable
 using BlazorTS;
 using Microsoft.AspNetCore.Components;
 
-namespace {ns};
+namespace {component.NamespaceName};
 
 /// <summary>
-/// A partial class to provide access to TypeScript functions from {className}.ts.
+/// A partial class to provide access to TypeScript functions from {component.ClassName}.razor.ts.
 /// </summary>
-public partial class {className}
+public partial class {component.ClassName}{component.TypeParameterListText}{whereClauseSuffix}
 {{
     /// <summary>
-    /// Gets or sets the TypeScript interop instance.
+    /// BLAZORTS-DESIGN-GUARD: 保留组件自动注入，但将互操作类型提升为顶层服务，
+    /// 这样组件泛型参数不会进入 DI 服务模型。
     /// </summary>
-    [Inject] public TSInterop Scripts {{ get; set; }} = null!;
+    [Inject] public {component.InteropClassName} Scripts {{ get; set; }} = null!;
+}}
 
-    /// <summary>
-    /// Provides strongly-typed access to the TypeScript functions in {className}.ts.
-    /// </summary>
-    public class TSInterop(ScriptBridge invoker)
-    {{
-        private readonly string url = invoker.ResolveNS(typeof({fullName}), "".razor"");
+/// <summary>
+/// Provides strongly-typed access to the TypeScript functions in {component.ClassName}.razor.ts.
+/// </summary>
+public class {component.InteropClassName}(ScriptBridge invoker)
+{{
+    private readonly string url = invoker.ResolveNS(""{component.FullName}"", "".razor"");
 
-        {methods.Select(GenerateMethod).ToDelimitedString("\n")}
-    }}
+    {methodsCode}
 }}
 #nullable restore
 ";
             }
-            else
-            {
-                return $@"#nullable enable
-using BlazorTS;
-using Microsoft.AspNetCore.Components;
 
-namespace {ns};
+            return $@"#nullable enable
+using BlazorTS;
+
+namespace {component.NamespaceName};
 
 /// <summary>
-/// Provides strongly-typed access to the TypeScript functions in {className}.entry.ts.
+/// Provides strongly-typed access to the TypeScript functions in {component.ClassName}.entry.ts.
 /// This class is designed for dependency injection.
 /// </summary>
-public class {className}(ScriptBridge invoker)
+public class {component.ClassName}(ScriptBridge invoker)
 {{
-    private readonly string url = invoker.ResolveNS(typeof({fullName}), "".entry"");
+    private readonly string url = invoker.ResolveNS(typeof({component.FullName}), "".entry"");
 
-    {methods.Select(GenerateMethod).ToDelimitedString("\n")}
+    {methodsCode}
 }}
 #nullable restore
 ";
-            }
         }
 
         private static string GenerateMethod(TSFunction function)
         {
             var parameters = string.Join(", ", function.Parameters.Select(p =>
-                $"{ConvertType(p.Type)} {p.Name}" + (p.IsOptional ? " = default" : "")));
+                $"{ConvertType(p.Type)} {p.Name}" + (p.IsOptional ? " = default" : string.Empty)));
             var args = string.Join(", ", function.Parameters.Select(p => p.Name));
             var returnType = ConvertType(function.ReturnType);
             var paramDocs = string.Join("\n", function.Parameters.Select(p => $"        /// <param name=\"{p.Name}\">A {p.Type} value.</param>"));
@@ -277,9 +304,8 @@ public class {className}(ScriptBridge invoker)
                 new object?[] {{ {args} }});
         }}";
             }
-            else
-            {
-                return $@"
+
+            return $@"
         /// <summary>
         /// Invokes the '{function.Name}' TypeScript function and returns a {returnType}.
         /// </summary>
@@ -290,7 +316,6 @@ public class {className}(ScriptBridge invoker)
             return await invoker.InvokeAsync<{returnType}>(url, ""{function.Name}"",
                 new object?[] {{ {args} }});
         }}";
-            }
         }
 
         private static string ConvertType(string tsType)
@@ -306,11 +331,10 @@ public class {className}(ScriptBridge invoker)
             };
         }
 
-        private static string GenerateExtension(SourceProductionContext spc, List<string> entryModuleNames, List<string> razorInteropTypeNames)
+        private static string GenerateExtension(List<string> injectableTypeNames)
         {
-            var servicesRegistration = entryModuleNames
+            var servicesRegistration = injectableTypeNames
                 .Select(name => $"            services.AddScoped<{name}>();")
-                .Concat(razorInteropTypeNames.Select(name => $"            services.AddScoped<{name}>();"))
                 .ToDelimitedString("\n");
 
             return $@"#nullable enable
@@ -330,7 +354,6 @@ namespace BlazorTS.SourceGenerator.Extensions
         /// <returns>The <see cref=""IServiceCollection""/> so that additional calls can be chained.</returns>
         public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
         {{
-            // Ensure base BlazorTS services (ScriptBridge, INSResolver) are available
             services.AddBlazorTS();
 {servicesRegistration}
             return services;
@@ -340,8 +363,5 @@ namespace BlazorTS.SourceGenerator.Extensions
 #nullable restore
 ";
         }
-
-
-
     }
 }

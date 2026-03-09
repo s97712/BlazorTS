@@ -10,58 +10,37 @@
 
 ---
 
-BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析** 分析 TypeScript 代码，自动生成 C# 包装代码，让你可以在 Blazor 应用中直接调用 TypeScript 函数，无需手动编写 JavaScript 互操作代码。
+BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析** 分析 TypeScript 代码，并自动生成强类型 C# 包装代码，让你可以在 Blazor 应用中直接调用 TypeScript 函数，而无需手写 JavaScript 互操作胶水代码。
 
 ## ✨ 特性
 
-- 🔄 **编译时生成**: 基于 Tree-sitter 语法树解析，从 TypeScript 文件自动生成 C# 包装代码
-- 🎯 **类型安全**: 完整的类型映射和编译时检查
-- 🚀 **零配置**: 最小化配置，开箱即用
-- 🔧 **智能依赖**: 自动解析和注册服务
-- 🌳 **精确解析**: 使用 Tree-sitter 精确解析 TypeScript 语法结构
+- 🔄 **编译时生成**：自动分析 TypeScript 文件并生成 C# 包装代码
+- 🎯 **类型安全**：为导出的 TypeScript 函数生成强类型 C# API
+- 🚀 **零配置**：最小配置即可使用
+- 🔧 **自动注册**：通过 `AddBlazorTSScripts()` 注册所有生成的互操作服务
+- 🌳 **精确解析**：使用 Tree-sitter 精确处理 TypeScript 语法
 
-## � 安装
+## 📦 安装
 
-**核心库**
+### 核心库
 
-| NuGet 包 | NuGet 版本 | 描述 |
-|--|--|--|
-| [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.svg?style=flat)](https://www.nuget.org/packages/BlazorTS) | 核心运行时库 |
-| [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | [![NuGet](https://img.shields.io/nuget/v/BlazorTS.SourceGenerator.svg?style=flat)](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | 源代码生成器库 |
-| [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | [![NuGet](https://img.shields.io/nuget/v/Microsoft.TypeScript.MSBuild.svg?style=flat)](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript 编译支持 |
+| NuGet 包 | 描述 |
+|--|--|
+| [`BlazorTS`](https://www.nuget.org/packages/BlazorTS) | 核心运行时库 |
+| [`BlazorTS.SourceGenerator`](https://www.nuget.org/packages/BlazorTS.SourceGenerator) | 源代码生成器库 |
+| [`BlazorTS.Assets`](https://www.nuget.org/packages/BlazorTS.Assets) | 资源管理与动态 URL 支持 |
+| [`Microsoft.TypeScript.MSBuild`](https://www.nuget.org/packages/Microsoft.TypeScript.MSBuild) | TypeScript 编译支持 |
 
 ### 安装与配置
 
-**1. 安装 NuGet 包**
-
-**使用 .NET CLI 安装**
 ```bash
 dotnet add package BlazorTS
 dotnet add package BlazorTS.SourceGenerator
-dotnet add package Microsoft.TypeScript.MSBuild # (可选)
+dotnet add package BlazorTS.Assets # 可选
+dotnet add package Microsoft.TypeScript.MSBuild # 可选
 ```
-
-**使用 Package Manager Console 安装**
-```powershell
-Install-Package BlazorTS
-Install-Package BlazorTS.SourceGenerator
-Install-Package Microsoft.TypeScript.MSBuild # (可选)
-```
-
-> **替代方案：** 如果不使用 `Microsoft.TypeScript.MSBuild`，可手动在 `.csproj` 中添加 `Target` 来调用 `npx tsc` 编译。
->
-> ```xml
-> <Target Name="CompileTypeScript" BeforeTargets="Build">
->   <Exec Command="npx tsc" />
-> </Target>
-> ```
-
-**2. 配置项目文件**
-
-在 `.csproj` 文件中添加以下配置，以确保 TypeScript 文件被正确处理：
 
 ```xml
-<!-- 添加 .razor.ts 和 .entry.ts 文件为附加文件 -->
 <ItemGroup>
   <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
   <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
@@ -70,79 +49,84 @@ Install-Package Microsoft.TypeScript.MSBuild # (可选)
 
 ## 🚀 文件命名约定
 
-BlazorTS 支持两种 TypeScript 文件类型，以提供灵活的模块化方案：
+### 1. Razor 组件脚本（`.razor.ts`）
 
-### 1. Razor 组件脚本 (`.razor.ts`)
+这类文件与某个 Razor 组件绑定。
 
-这种文件与特定的 Razor 组件绑定，用于组件级别的脚本逻辑。
+- **命名**：`MyComponent.razor.ts` 必须与 `MyComponent.razor` 配对
+- **生成结果**：
+  - 为组件生成 `partial class`
+  - 为组件生成顶层 `*TSInterop` 互操作类
+  - 在组件上自动注入 `Scripts` 属性
+- **使用方式**：通过 `Scripts` 直接调用导出的 TypeScript 函数
 
-- **命名约定**: `MyComponent.razor.ts` 必须与 `MyComponent.razor` 配对。
-- **生成结果**: 自动为 `MyComponent` 生成一个 `partial class`，并注入一个名为 `Scripts` 的 `TSInterop` 实例。
-- **使用方式**: 在组件内通过 `@inject` 的 `Scripts` 属性直接调用 TypeScript 函数。
+**示例**
 
-**示例：**
-
-**`Components/Pages/Counter.razor.ts`**
 ```typescript
-// Counter.razor 组件的专属模块
+// Components/Pages/Counter.razor.ts
 export function increment(count: number): number {
-    console.log("Incrementing count from TypeScript module!");
     return count + 1;
 }
 ```
 
-**`Components/Pages/Counter.razor`**
 ```csharp
 @page "/counter"
-@rendermode InteractiveServer
 
 @code {
-    public partial class Counter // 必须是 partial class
-    {
-        private int currentCount = 0;
+    private int currentCount = 0;
 
-        private async Task HandleClick()
-        {
-            // 直接调用由 BlazorTS 注入的 Scripts 属性
-            currentCount = await Scripts.increment(currentCount);
-        }
+    private async Task HandleClick()
+    {
+        currentCount = await Scripts.increment(currentCount);
     }
 }
 ```
 
-### 2. 独立功能模块 (`.entry.ts`)
+BlazorTS 在概念上会生成如下代码：
 
-这种文件用于定义可被多个组件或服务共享的通用 TypeScript 模块。
+```csharp
+public partial class Counter
+{
+    [Inject] public CounterTSInterop Scripts { get; set; } = null!;
+}
 
-- **命名约定**: `my-utils.entry.ts` 或 `api.entry.ts`。
-- **生成结果**: 生成一个标准的 C# 类（例如 `MyUtils` 或 `Api`），需要手动注册和注入。
-- **使用方式**: 在 `Program.cs` 中注册服务，然后在需要的地方通过依赖注入使用。
+public class CounterTSInterop(ScriptBridge invoker)
+{
+    private readonly string url = invoker.ResolveNS("MyApp.Components.Pages.Counter", ".razor");
 
-**示例：**
+    public async Task<double> increment(double count)
+    {
+        return await invoker.InvokeAsync<double>(url, "increment", new object?[] { count });
+    }
+}
+```
 
-**`Services/Formatter.entry.ts`**
+### 2. 独立功能模块（`.entry.ts`）
+
+这类文件用于定义可复用的 TypeScript 模块，并生成普通服务类。
+
+- **命名**：`my-utils.entry.ts` 或 `api.entry.ts`
+- **生成结果**：普通 C# 服务类
+- **使用方式**：通过 `AddBlazorTSScripts()` 注册后，在任意位置注入使用
+
 ```typescript
+// Services/Formatter.entry.ts
 export function formatCurrency(amount: number): string {
     return `$${amount.toFixed(2)}`;
 }
 ```
 
-**`Program.cs`**
 ```csharp
-// 自动查找并注册所有 .entry.ts 生成的服务
 builder.Services.AddBlazorTSScripts();
 ```
 
-**`MyComponent.razor`**
 ```csharp
 @inject TestApp.Services.Formatter Formatter
 
-<p>@Formatter.formatCurrency(123.45)</p>
+<p>@await Formatter.formatCurrency(123.45)</p>
 ```
 
-### 2. 配置 `tsconfig.json`
-
-为了让 Blazor 能够找到编译后的 JS 文件，我们需要配置 `tsconfig.json` 以保留目录结构。
+## 配置 `tsconfig.json`
 
 ```json
 {
@@ -160,69 +144,29 @@ builder.Services.AddBlazorTSScripts();
   ]
 }
 ```
-> 这样配置后，`Components/Pages/Counter.razor.ts` 将被编译到 `wwwroot/js/Components/Pages/Counter.js`。
 
-### 4. 注册服务
-
-在 `Program.cs` 中注册 BlazorTS 服务。
+## 注册服务
 
 ```csharp
-// Program.cs
 using BlazorTS.SourceGenerator.Extensions;
-using Microsoft.Extensions.DependencyInjection;
 
-// 注册 BlazorTS 核心服务（包含默认路径解析器）
 builder.Services.AddBlazorTS();
-// 自动查找并注册所有 .entry.ts 生成的服务
 builder.Services.AddBlazorTSScripts();
 ```
 
-### 5. 运行并查看结果
-
-现在，运行你的 Blazor 应用。当你点击按钮时：
-1.  `Counter.razor` 中的 `HandleClick` 方法被调用。
-2.  它直接访问 `Scripts` 属性，这是 BlazorTS 自动生成的。
-3.  `Scripts.increment` 调用会执行 `Counter.razor.ts` 中的相应函数。
-
-BlazorTS 在后台为你生成了如下的 `partial class` 代码，并将其与你的 `Counter.razor.cs` 合并：
-
-```csharp
-// BlazorTS 自动生成的代码 (conceptual)
-public partial class Counter
-{
-    // 自动注入 TSInterop 实例
-    [Inject]
-    public TSInterop Scripts { get; set; } = null!;
-
-    // 包装类，负责与 JS 互操作
-    public class TSInterop(ScriptBridge invoker)
-    {
-        // ... 实现细节 ...
-        public async Task<double> increment(double count)
-        {
-            // ... 调用 JS ...
-        }
-    }
-}
-```
-
-通过这种方式，BlazorTS 将 TypeScript 的开发体验与 Blazor 组件模型完美融合，实现了真正的模块化。
-
 ## 🛠️ 自定义路径解析
 
-BlazorTS 默认将 `MyApp.Components.Counter` 映射为 `/js/Components/Counter.js`。
-
-如需自定义路径，可在注册服务时指定：
+默认情况下，BlazorTS 会把逻辑组件名或模块名映射到 `/js/...`。
 
 ```csharp
-// 使用自定义函数
 builder.Services.AddBlazorTS((type, suffix) =>
 {
     var path = type.FullName!.Replace('.', '/');
     return $"/scripts/{path}{suffix}.js";
 });
+```
 
-// 使用自定义解析器类
+```csharp
 public class CustomResolver : INSResolver
 {
     public string ResolveNS(Type tsType, string suffix)
@@ -230,28 +174,22 @@ public class CustomResolver : INSResolver
         var path = tsType.FullName!.Replace('.', '/');
         return $"/lib/{path}{suffix}.js";
     }
+
+    public string ResolveNS(string fullName, string suffix)
+    {
+        var path = fullName.Replace('.', '/');
+        return $"/lib/{path}{suffix}.js";
+    }
 }
+
 builder.Services.AddBlazorTS<CustomResolver>();
 ```
 
 ### Suffix 参数
 
-`ResolveNS` 方法现在包含 `suffix` 参数，用于区分不同的模块类型：
-
-- **Razor 组件** (`.razor.ts` 文件)：使用后缀 `".razor"`
-  - `Component.razor.ts` → `/js/Component.razor.js`
-- **Entry 模块** (`.entry.ts` 文件)：使用后缀 `".entry"`
-  - `Module.entry.ts` → `/js/Module.entry.js`
-- **自定义后缀**：可以使用任意字符串作为后缀
-
-**示例：**
-```csharp
-// 默认解析器自动处理后缀
-var resolver = new DefaultNSResolver();
-resolver.ResolveNS(typeof(MyComponent), ".razor");  // "/js/MyComponent.razor.js"
-resolver.ResolveNS(typeof(MyModule), ".entry");     // "/js/MyModule.entry.js"
-resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
-```
+- Razor 组件（`.razor.ts`）使用后缀 `".razor"`
+- Entry 模块（`.entry.ts`）使用后缀 `".entry"`
+- 其他模块样式可使用任意自定义后缀
 
 ## 🔧 支持的类型
 
@@ -266,13 +204,13 @@ resolver.ResolveNS(typeof(MyClass), "");            // "/js/MyClass.js"
 
 ## 📖 更多文档
 
-- [开发指南](docs/development-guide.md) - 详细的开发和构建说明
-- [支持的 TypeScript 语法](docs/supported-typescript-syntax.md) - 完整的语法支持列表
-- [DLL 路径解析机制](docs/dll-resolver-mechanism.md) - 高级配置选项
+- [开发指南](docs/development-guide.md)
+- [支持的 TypeScript 语法](docs/supported-typescript-syntax.md)
+- [DLL 路径解析机制](docs/dll-resolver-mechanism.md)
 
 ## 🤝 贡献
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request。
 
 ## 📄 许可证
 
