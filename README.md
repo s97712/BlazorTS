@@ -202,6 +202,22 @@ builder.Services.AddBlazorTS<CustomResolver>();
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
 
+## Real Blazor Regression Coverage
+
+The repository now includes a minimal real Blazor app at `BlazorTS.RealBlazorApp/` to validate behavior beyond Roslyn-only generator tests.
+
+- `BlazorTS.RealBlazorApp/`: a minimal real Blazor Web App that keeps only the files required for interop verification
+- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor`: a real generic Razor component
+- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor.ts`: the paired script that generates the top-level `GenericProbeTSInterop`
+- `BlazorTS.RealBlazorApp.Tests/`: regression tests that assert the finalized model through reflection, DI registration, and real compiled artifacts
+
+This project specifically covers:
+
+- generic parameters stay on the component partial class
+- `Scripts` auto-injection still works in a real Razor compilation flow
+- interop services remain top-level non-generic `*TSInterop` types
+- `AddBlazorTSScripts()` registers the generated interop type for DI
+
 ## 📖 Documentation
 
 - [Development Guide](docs/development-guide.md)

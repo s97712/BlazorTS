@@ -202,6 +202,22 @@ builder.Services.AddBlazorTS<CustomResolver>();
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
 
+## 真实 Blazor 回归验证
+
+仓库中新增了一个最小真实 Blazor 工程 `BlazorTS.RealBlazorApp/`，用于补足 Roslyn 生成器测试之外的真实 Razor 编译验证。
+
+- `BlazorTS.RealBlazorApp/`：最小真实 Blazor Web App，仅保留泛型组件验证所需内容
+- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor`：真实泛型 Razor 组件
+- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor.ts`：组件配套脚本，生成顶层 `GenericProbeTSInterop`
+- `BlazorTS.RealBlazorApp.Tests/`：通过反射、DI 和真实编译产物断言当前已定稿模型
+
+这个场景重点覆盖：
+
+- 泛型仅作用于组件 partial class
+- `Scripts` 自动注入在真实 Razor 编译语义下成立
+- 互操作服务保持顶层非泛型 `*TSInterop`
+- `AddBlazorTSScripts()` 会把对应互操作类型注册进 DI
+
 ## 📖 更多文档
 
 - [开发指南](docs/development-guide.md)

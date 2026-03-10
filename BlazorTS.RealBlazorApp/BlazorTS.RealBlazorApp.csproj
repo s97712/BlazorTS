@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TypeScriptParserNativePath>$(MSBuildProjectDirectory)/../BlazorTS.SourceGenerator/bin/$(Configuration)/net9.0/</TypeScriptParserNativePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="TypeScriptParserNativePath" />
+  </ItemGroup>
+
+  <ItemGroup>
+
+    <ProjectReference Include="../BlazorTS/BlazorTS.csproj" />
+    <ProjectReference Include="../BlazorTS.SourceGenerator/BlazorTS.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="**/*.razor.ts" Exclude="**/node_modules/**" />
+    <AdditionalFiles Include="**/*.entry.ts" Exclude="**/node_modules/**" />
+  </ItemGroup>
+
+</Project>

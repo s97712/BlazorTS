@@ -1,0 +1,19 @@
+@page "/"
+@page "/generic-probe"
+@rendermode InteractiveServer
+
+<PageTitle>Generic Probe</PageTitle>
+
+<GenericProbe TItem="WeatherForecast"
+              Label="Forecasts"
+              Items="Forecasts" />
+
+@code {
+    private static readonly IReadOnlyList<WeatherForecast> Forecasts =
+    [
+        new("Oslo", 12),
+        new("Tokyo", 26)
+    ];
+
+    private sealed record WeatherForecast(string City, int TemperatureC);
+}

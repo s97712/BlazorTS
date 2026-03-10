@@ -39,6 +39,9 @@ jobs:
     - name: Test Source Generator
       run: dotnet test BlazorTS.SourceGenerator.Tests/ -c Release --no-build
 
+    - name: Test Real Blazor App
+      run: dotnet test BlazorTS.RealBlazorApp.Tests/ -c Release --no-build
+
   package:
     needs: test
     runs-on: ubuntu-latest

@@ -1,0 +1,11 @@
+@typeparam TItem where TItem : class
+
+<div class="generic-script-probe">@Label</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+}
