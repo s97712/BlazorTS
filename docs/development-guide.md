@@ -219,7 +219,9 @@ dotnet nuget locals all --clear
 dotnet test BlazorTS.SourceGenerator.Tests/
 dotnet test
 dotnet test BlazorTS.RealBlazorApp.Tests/
-dotnet pack --configuration Release --output ./artifacts/
+dotnet pack BlazorTS/BlazorTS.csproj --configuration Release --output ./artifacts/
+dotnet pack BlazorTS.Assets/BlazorTS.Assets.csproj --configuration Release --output ./artifacts/
+dotnet pack BlazorTS.SourceGenerator/BlazorTS.SourceGenerator.csproj --configuration Release --output ./artifacts/
 dotnet build-server shutdown
 dotnet add package BlazorTS.SourceGenerator --version 0.1.0-dev --project BlazorTS.TestPackage/
 BLAZORTS_LOG_ENABLED=true dotnet test BlazorTS.TestPackage/

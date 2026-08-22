@@ -6,7 +6,7 @@
         <Description>Blazor TypeScript互操作组件库</Description>
         <PackageTags>blazor;typescript;interop;javascript</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <NoWarn>$(NoWarn);NU5128;CS1591</NoWarn>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
 

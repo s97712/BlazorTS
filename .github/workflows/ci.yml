@@ -71,7 +71,10 @@ jobs:
       run: dotnet build -c Release -p:Version=$VERSION --no-restore
       
     - name: Pack
-      run: dotnet pack -c Release -p:Version=$VERSION --no-build -o ./artifacts
+      run: |
+        dotnet pack BlazorTS/BlazorTS.csproj -c Release -p:Version=$VERSION --no-build -o ./artifacts
+        dotnet pack BlazorTS.Assets/BlazorTS.Assets.csproj -c Release -p:Version=$VERSION --no-build -o ./artifacts
+        dotnet pack BlazorTS.SourceGenerator/BlazorTS.SourceGenerator.csproj -c Release -p:Version=$VERSION --no-build -o ./artifacts
       
     - name: Upload Packages
       uses: actions/upload-artifact@v4

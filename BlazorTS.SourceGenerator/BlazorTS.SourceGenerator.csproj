@@ -16,6 +16,7 @@
         <DevelopmentDependency>true</DevelopmentDependency>
         <!-- 覆盖全局 README 设置，SourceGenerator 不需要 README -->
         <PackageReadmeFile></PackageReadmeFile>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     </PropertyGroup>
 
     <ItemGroup>
