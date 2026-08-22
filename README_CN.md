@@ -155,30 +155,29 @@ builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 
 源生成器会在每个类库的根命名空间下生成 `Scripts.AddScripts(IServiceCollection)`。宿主项目使用完整方法名传入 `AddScripts`，例如 `MyApp.Generated.Scripts.AddScripts`。
 
-## 🛠️ 自定义路径解析
+## 🛠️ 路径解析
 
-默认情况下，BlazorTS 会把逻辑组件名或模块名映射到 `/js/...`。
+BlazorTS 通过注册的解析函数生成 JavaScript 模块路径。若没有任何已注册的解析函数返回非空路径，将直接抛出 `InvalidOperationException`。
 
 ```csharp
-builder.Services.AddBlazorTS((fullName, suffix) =>
+builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 {
     var path = fullName.Replace('.', '/');
     return $"/scripts/{path}{suffix}.js";
 });
-```
 
-```csharp
-public class CustomResolver : INSResolver
+builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 {
-    public string ResolveNS(string fullName, string suffix)
+    if (!fullName.StartsWith("MyApp.Services."))
     {
-        var path = fullName.Replace('.', '/');
-        return $"/lib/{path}{suffix}.js";
+        return null;
     }
-}
 
-builder.Services.AddBlazorTS<CustomResolver>();
+    return $"/services/{fullName.Replace('.', '/')}{suffix}.js";
+});
 ```
+
+解析函数按注册顺序调用。函数返回模块路径表示处理成功，返回 `null` 表示继续调用下一条解析函数。若所有解析函数均返回 `null`，解析将抛出异常。
 
 ### Suffix 参数
 

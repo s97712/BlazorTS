@@ -191,18 +191,17 @@ public class Formatter(ScriptBridge invoker)
 
 ## Suffix 参数说明
 
-`ResolveNS` 通过 `suffix` 区分不同模块类型：
+`ResolveNS` 将 `suffix` 传递给已注册的解析函数。解析函数根据完整类型名和后缀生成模块路径，返回 `null` 时继续调用下一条解析函数。
 
 ```csharp
-// Razor 组件：Component.razor.ts -> /js/Component.razor.js
-var razorUrl = invoker.ResolveNS("MyApp.Components.Component", ".razor");
-
-// Entry 模块：Module.entry.ts -> /js/Module.entry.js
-var entryUrl = invoker.ResolveNS(typeof(Module), ".entry");
-
-// 普通模块：Utils.ts -> /js/Utils.js
-var normalUrl = invoker.ResolveNS(typeof(Utils), "");
+builder.Services.AddBlazorTSResolver((fullName, suffix) =>
+{
+    var path = fullName.Replace('.', '/');
+    return $"/js/{path}{suffix}.js";
+});
 ```
+
+Razor 组件通常使用 `.razor`，Entry 模块通常使用 `.entry`。
 
 ## 构建和测试
 

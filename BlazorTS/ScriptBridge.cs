@@ -7,7 +7,7 @@ namespace BlazorTS;
 /// </summary>
 /// <param name="jsRuntime">The JavaScript runtime environment</param>
 /// <param name="resolver">The namespace resolver for custom path resolution</param>
-public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
+public class ScriptBridge(IJSRuntime jsRuntime, NSResolver resolver)
 {
     private readonly Lazy<Task<IJSObjectReference>> _module =
         new(() => jsRuntime.InvokeAsync<IJSObjectReference>(

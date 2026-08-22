@@ -46,10 +46,17 @@ public class RealBlazorGenericComponentTests
     [Fact]
     public void GeneratedInterop_Uses_StringBasedResolver_Path_Without_GenericArity()
     {
-        var resolver = new DefaultNSResolver();
+        var resolver = new NSResolver(
+        [
+            (fullName, suffix) =>
+            {
+                var path = fullName.Replace("BlazorTS.", string.Empty).Replace('.', '/');
+                return $"/js/{path}{suffix}.js";
+            }
+        ]);
         var path = resolver.ResolveNS("BlazorTS.RealBlazorApp.Components.Pages.GenericProbe", ".razor");
 
-        Assert.Equal("/js/BlazorTS/RealBlazorApp/Components/Pages/GenericProbe.razor.js", path);
+        Assert.Equal("/js/RealBlazorApp/Components/Pages/GenericProbe.razor.js", path);
         Assert.DoesNotContain("`", path);
     }
 

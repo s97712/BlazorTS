@@ -151,30 +151,29 @@ builder.Services.AddScripts(TestApp.Generated.Scripts.AddScripts);
 builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
 
-## 🛠️ Custom Path Resolution
+## 🛠️ Path Resolution
 
-By default, BlazorTS maps a logical component or module name to `/js/...`.
+BlazorTS resolves JavaScript module paths using registered resolver delegates. If no registered resolver returns a path, an `InvalidOperationException` is thrown.
 
 ```csharp
-builder.Services.AddBlazorTS((fullName, suffix) =>
+builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 {
     var path = fullName.Replace('.', '/');
     return $"/scripts/{path}{suffix}.js";
 });
-```
 
-```csharp
-public class CustomResolver : INSResolver
+builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 {
-    public string ResolveNS(string fullName, string suffix)
+    if (!fullName.StartsWith("MyApp.Services."))
     {
-        var path = fullName.Replace('.', '/');
-        return $"/lib/{path}{suffix}.js";
+        return null;
     }
-}
 
-builder.Services.AddBlazorTS<CustomResolver>();
+    return $"/services/{fullName.Replace('.', '/')}{suffix}.js";
+});
 ```
+
+Resolvers are called in registration order. Return a module path for a match and `null` to continue with the next resolver. If all resolvers return `null`, resolving throws an exception.
 
 ### Suffix Parameter
 
