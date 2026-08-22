@@ -66,9 +66,12 @@ namespace BlazorTS
 
                 // BLAZORTS-DESIGN-GUARD: 泛型仅作用于 Razor partial class，
                 // 互操作类型统一提升为顶层可注入服务，避免让 DI 服务类型被组件泛型污染。
-                var extensionCode = GenerateExtension(injectableTypeNames);
+                var extensionCode = GenerateExtension(injectableTypeNames, meta.ns ?? string.Empty);
+                var extensionNamespace = string.IsNullOrEmpty(meta.ns)
+                    ? "BlazorTS.Generated"
+                    : $"{meta.ns}.Generated";
                 spc.AddSource(
-                    "BlazorTS.SourceGenerator.Extensions.ServiceCollectionExtensions.g.cs",
+                    $"{extensionNamespace}.Scripts.g.cs",
                     SourceText.From(extensionCode, Encoding.UTF8));
             });
         }
@@ -331,33 +334,32 @@ public class {component.ClassName}(ScriptBridge invoker)
             };
         }
 
-        private static string GenerateExtension(List<string> injectableTypeNames)
+        private static string GenerateExtension(List<string> injectableTypeNames, string rootNamespace)
         {
             var servicesRegistration = injectableTypeNames
-                .Select(name => $"            services.AddScoped<{name}>();")
+                .Select(name => $"        services.AddScoped<{name}>();")
                 .ToDelimitedString("\n");
+            var normalizedNamespace = string.IsNullOrEmpty(rootNamespace)
+                ? "BlazorTS.Generated"
+                : $"{rootNamespace}.Generated";
+            var methodName = "AddScripts";
 
             return $@"#nullable enable
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BlazorTS.SourceGenerator.Extensions
+namespace {normalizedNamespace};
+
+/// <summary>
+/// Registers TypeScript interop services generated for this project.
+/// </summary>
+public static class Scripts
 {{
     /// <summary>
-    /// Provides extension methods for setting up BlazorTS-generated script interop services.
+    /// Registers all TypeScript interop services generated for this project.
     /// </summary>
-    public static class ServiceCollectionExtensions
+    public static void {methodName}(IServiceCollection services)
     {{
-        /// <summary>
-        /// Adds all generated TypeScript interop services to the specified <see cref=""IServiceCollection""/>.
-        /// </summary>
-        /// <param name=""services"">The <see cref=""IServiceCollection""/> to add the services to.</param>
-        /// <returns>The <see cref=""IServiceCollection""/> so that additional calls can be chained.</returns>
-        public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)
-        {{
-            services.AddBlazorTS();
 {servicesRegistration}
-            return services;
-        }}
     }}
 }}
 #nullable restore

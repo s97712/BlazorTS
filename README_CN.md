@@ -148,11 +148,12 @@ builder.Services.AddBlazorTSScripts();
 ## 注册服务
 
 ```csharp
-using BlazorTS.SourceGenerator.Extensions;
+using MyApp.Generated;
 
-builder.Services.AddBlazorTS();
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
+
+源生成器会在每个类库的根命名空间下生成 `Scripts.AddScripts(IServiceCollection)`。宿主项目使用完整方法名传入 `AddScripts`，例如 `MyApp.Generated.Scripts.AddScripts`。
 
 ## 🛠️ 自定义路径解析
 

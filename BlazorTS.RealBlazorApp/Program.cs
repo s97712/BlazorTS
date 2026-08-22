@@ -1,4 +1,3 @@
-using BlazorTS.SourceGenerator.Extensions;
 using BlazorTS.RealBlazorApp.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(BlazorTS.RealBlazorApp.Generated.Scripts.AddScripts);
 
 var app = builder.Build();
 

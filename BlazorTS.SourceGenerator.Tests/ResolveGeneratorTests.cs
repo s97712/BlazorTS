@@ -37,10 +37,9 @@ public class ResolveGeneratorTests : TestBase
         Assert.Contains("public async Task<string> greet(string name)", code);
         Assert.Contains("invoker.ResolveNS(\"TestApp.Components.Pages.MyComponent\", \".razor\")", code);
 
-        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Extensions.g.cs"));
+        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddBlazorTS();", extensionCode);
+        Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
         Assert.Contains("services.AddScoped<TestApp.Components.Pages.MyComponentTSInterop>();", extensionCode);
     }
 
@@ -67,7 +66,7 @@ public class ResolveGeneratorTests : TestBase
         Assert.Contains("invoker.ResolveNS(\"TestApp.Components.Grid\", \".razor\")", code);
 
 
-        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Extensions.g.cs"));
+        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("services.AddScoped<TestApp.Components.GridTSInterop>();", extensionCode);
         Assert.DoesNotContain("Grid<TItem>.TSInterop", extensionCode);
@@ -94,11 +93,10 @@ public class ResolveGeneratorTests : TestBase
         Assert.DoesNotContain("[Inject]", classCode);
         Assert.Contains("public async Task doWork()", classCode);
 
-        var extensionSource = generatorResult.GeneratedSources.FirstOrDefault(s => s.HintName.EndsWith("Extensions.g.cs"));
+        var extensionSource = generatorResult.GeneratedSources.FirstOrDefault(s => s.HintName.EndsWith("Scripts.g.cs"));
         Assert.NotNull(extensionSource.SourceText);
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddBlazorTS();", extensionCode);
+        Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
         Assert.Contains("services.AddScoped<TestApp.Services.MyService>();", extensionCode);
     }
 
@@ -113,10 +111,9 @@ public class ResolveGeneratorTests : TestBase
 
         Assert.Single(generatorResult.GeneratedSources);
         var extensionSource = generatorResult.GeneratedSources.Single();
-        Assert.EndsWith("Extensions.g.cs", extensionSource.HintName);
+        Assert.EndsWith("Scripts.g.cs", extensionSource.HintName);;
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("public static IServiceCollection AddBlazorTSScripts(this IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddBlazorTS();", extensionCode);
+        Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
     }
 
     [Fact]
@@ -148,9 +145,9 @@ public class ResolveGeneratorTests : TestBase
         Assert.Contains("public class Client(ScriptBridge invoker)", entryCode);
         Assert.Contains("public async Task entryFunc()", entryCode);
 
-        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Extensions.g.cs"));
+        var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("services.AddBlazorTS();", extensionCode);
+        Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
         Assert.Contains("services.AddScoped<MyApp.Api.Client>();", extensionCode);
         Assert.Contains("services.AddScoped<MyApp.Components.MyPageTSInterop>();", extensionCode);
     }

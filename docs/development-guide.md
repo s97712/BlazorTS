@@ -8,7 +8,7 @@
 2. **代码生成**：
    - 对 `.razor.ts` 生成组件对应的 `partial class`，并为其配套生成顶层 `*TSInterop` 互操作类。
    - 对 `.entry.ts` 生成可直接注入的服务类。
-3. **服务注册**：自动生成 `AddBlazorTSScripts()` 扩展方法，注册所有生成的互操作服务。
+3. **服务注册**：每个项目生成 `Generated.Scripts.AddScripts(IServiceCollection)` 静态方法，宿主通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册生成的互操作服务。
 
 ## 使用步骤
 
@@ -49,9 +49,7 @@ dotnet add package BlazorTS.SourceGenerator
 
 ```csharp
 // Program.cs
-using BlazorTS.SourceGenerator.Extensions;
-
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
 
 ### 4. 在组件中使用
@@ -104,7 +102,7 @@ public class CounterTSInterop(ScriptBridge invoker)
 
 ```csharp
 // Program.cs
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
 
 ```csharp
@@ -127,7 +125,7 @@ builder.Services.AddBlazorTSScripts();
 
 - **命名约定**：`my-utils.entry.ts` 或 `api.entry.ts`
 - **生成结果**：生成一个标准的 C# 服务类
-- **使用方式**：通过 `AddBlazorTSScripts()` 注册后，在任意位置通过依赖注入使用
+- **使用方式**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册后，在任意位置通过依赖注入使用
 
 ## 生成代码结构
 
@@ -178,7 +176,7 @@ public class Formatter(ScriptBridge invoker)
 - 泛型仅作用于组件 partial class
 - `Scripts` 自动注入在真实 Razor 编译语义下成立
 - 互操作服务保持顶层非泛型 `*TSInterop`
-- `AddBlazorTSScripts()` 会把对应互操作类型注册进 DI
+- `AddScripts(Project.Generated.Scripts.AddScripts)` 会把对应互操作类型注册进 DI
 
 ## 类型映射
 

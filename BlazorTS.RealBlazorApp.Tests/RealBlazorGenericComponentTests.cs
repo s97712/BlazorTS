@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Xml.Linq;
 using BlazorTS;
-using BlazorTS.SourceGenerator.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorTS.RealBlazorApp.Tests;
@@ -34,7 +33,7 @@ public class RealBlazorGenericComponentTests
     public void AddBlazorTSScripts_Registers_GenericComponentInterop_AsConcreteService()
     {
         var services = new ServiceCollection();
-        services.AddBlazorTSScripts();
+        services.AddScripts(BlazorTS.RealBlazorApp.Generated.Scripts.AddScripts);
 
         var descriptor = services.SingleOrDefault(service =>
             service.ServiceType.FullName == "BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop");

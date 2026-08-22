@@ -8,8 +8,20 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class BlazorTSServiceCollectionExtensions
 {
     /// <summary>
-    /// 添加 BlazorTS 服务，使用默认的命名空间解析器
+    /// 添加脚本服务注册委托。
     /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="configure">脚本服务注册委托</param>
+    /// <returns>服务集合</returns>
+    public static IServiceCollection AddScripts(
+        this IServiceCollection services,
+        Action<IServiceCollection> configure)
+    {
+        services.AddBlazorTS();
+        configure(services);
+        return services;
+    }
+
     /// <param name="services">服务集合</param>
     /// <returns>服务集合</returns>
     public static IServiceCollection AddBlazorTS(this IServiceCollection services)

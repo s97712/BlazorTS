@@ -17,7 +17,7 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 - 🔄 **Compile-time generation**: Analyze TypeScript files and generate C# wrappers automatically
 - 🎯 **Type safety**: Strongly typed C# APIs for exported TypeScript functions
 - 🚀 **Zero configuration**: Minimal setup, works out of the box
-- 🔧 **Automatic registration**: Generated interop services are registered through `AddBlazorTSScripts()`
+- 🔧 **Automatic registration**: Generated interop services are registered through `AddScripts(Project.Generated.Scripts.AddScripts)`
 - 🌳 **Precise parsing**: Uses Tree-sitter for accurate TypeScript syntax handling
 
 ## 📦 Installation
@@ -107,7 +107,7 @@ These files define reusable TypeScript modules that can be injected as services.
 
 - **Naming**: `my-utils.entry.ts` or `api.entry.ts`
 - **Generated output**: a normal C# service class
-- **Usage**: register with `AddBlazorTSScripts()` and inject where needed
+- **Usage**: register with `AddScripts(Project.Generated.Scripts.AddScripts)` and inject where needed
 
 ```typescript
 // Services/Formatter.entry.ts
@@ -117,7 +117,7 @@ export function formatCurrency(amount: number): string {
 ```
 
 ```csharp
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(TestApp.Generated.Scripts.AddScripts);
 ```
 
 ```csharp
@@ -148,10 +148,7 @@ builder.Services.AddBlazorTSScripts();
 ## Register Services
 
 ```csharp
-using BlazorTS.SourceGenerator.Extensions;
-
-builder.Services.AddBlazorTS();
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
 
 ## 🛠️ Custom Path Resolution
@@ -216,7 +213,7 @@ This project specifically covers:
 - generic parameters stay on the component partial class
 - `Scripts` auto-injection still works in a real Razor compilation flow
 - interop services remain top-level non-generic `*TSInterop` types
-- `AddBlazorTSScripts()` registers the generated interop type for DI
+- `AddScripts(Project.Generated.Scripts.AddScripts)` registers the generated interop types for DI
 
 ## 📖 Documentation
 
