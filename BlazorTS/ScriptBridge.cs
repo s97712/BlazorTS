@@ -1,5 +1,3 @@
-using System.Reflection;
-using System.Text.RegularExpressions;
 using Microsoft.JSInterop;
 
 namespace BlazorTS;
@@ -54,10 +52,6 @@ public class ScriptBridge(IJSRuntime jsRuntime, INSResolver resolver)
             })
             ?.ToArray();
     }
-
-    private static readonly string PkgName = Assembly.GetEntryAssembly()?
-        .GetName().Name!;
-    
 
     /// <summary>
     /// Resolves the compiled JavaScript path for TypeScript modules using the injected resolver.

@@ -14,7 +14,10 @@ public interface INSResolver
     /// <param name="tsType">TypeScript 类型</param>
     /// <param name="suffix">文件后缀，如 ".razor" 或 ""</param>
     /// <returns>JavaScript 模块的 URL 路径</returns>
-    string ResolveNS(Type tsType, string suffix);
+    string ResolveNS(Type tsType, string suffix)
+    {
+        return ResolveNS(tsType.FullName ?? tsType.Name, suffix);
+    }
 
     /// <summary>
     /// 解析逻辑类型全名对应的 JavaScript 模块路径。
@@ -31,38 +34,25 @@ public interface INSResolver
 public sealed class DefaultNSResolver : INSResolver
 {
     private static readonly Regex GenericArityRegex = new(@"`\d+", RegexOptions.Compiled);
-    private readonly Func<Type, string, string>? _customResolver;
+    private readonly Func<string, string, string>? _customResolver;
 
     /// <summary>
-    /// 使用默认规则创建解析器
+    /// 使用默认规则或自定义函数创建解析器
     /// </summary>
-    public DefaultNSResolver() : this(null) {}
-
-    /// <summary>
-    /// 使用自定义解析函数创建解析器
-    /// </summary>
-    /// <param name="customResolver">自定义路径解析函数</param>
-    public DefaultNSResolver(Func<Type, string, string>? customResolver)
+    /// <param name="customResolver">自定义路径解析函数，接收逻辑类型全名和后缀</param>
+    public DefaultNSResolver(Func<string, string, string>? customResolver = null)
     {
         _customResolver = customResolver;
     }
 
     /// <inheritdoc />
-    public string ResolveNS(Type tsType, string suffix)
+    public string ResolveNS(string fullName, string suffix)
     {
         if (_customResolver != null)
         {
-            return _customResolver(tsType, suffix);
+            return _customResolver(fullName, suffix);
         }
 
-        var pkgName = Assembly.GetEntryAssembly()?.GetName().Name!;
-        var name = NormalizeTypeName(tsType.FullName ?? tsType.Name, pkgName);
-        return $"/js/{name}{suffix}.js";
-    }
-
-    /// <inheritdoc />
-    public string ResolveNS(string fullName, string suffix)
-    {
         var pkgName = Assembly.GetEntryAssembly()?.GetName().Name!;
         var name = NormalizeTypeName(fullName, pkgName);
         return $"/js/{name}{suffix}.js";

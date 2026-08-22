@@ -8,7 +8,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithDefaultConstructor_UsesDefaultRule()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var testType = typeof(TestClass);
 
         var result = resolver.ResolveNS(testType, "");
@@ -22,18 +22,28 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithCustomFunction_UsesCustomRule()
     {
-        var customResolver = new DefaultNSResolver((type, suffix) => $"/custom/{type.Name}{suffix}.module.js");
+        INSResolver customResolver = new DefaultNSResolver((fullName, suffix) => $"/custom/{fullName}{suffix}.module.js");
         var testType = typeof(TestClass);
 
         var result = customResolver.ResolveNS(testType, ".test");
 
-        Assert.Equal("/custom/TestClass.test.module.js", result);
+        Assert.Equal("/custom/BlazorTS.SourceGenerator.Tests.INSResolverTests+TestClass.test.module.js", result);
+    }
+
+    [Fact]
+    public void DefaultNSResolver_WithCustomFunction_UsesSameRuleForLogicalFullName()
+    {
+        INSResolver resolver = new DefaultNSResolver((fullName, suffix) => $"/custom/{fullName}{suffix}.module.js");
+
+        var result = resolver.ResolveNS("MyApp.Components.Counter", ".razor");
+
+        Assert.Equal("/custom/MyApp.Components.Counter.razor.module.js", result);
     }
 
     [Fact]
     public void DefaultNSResolver_WithNullFunction_UsesDefaultRule()
     {
-        var resolver = new DefaultNSResolver(null);
+        INSResolver resolver = new DefaultNSResolver(null);
         var testType = typeof(TestClass);
 
         var result = resolver.ResolveNS(testType, "");
@@ -46,7 +56,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithNestedClass_HandlesCorrectly()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var nestedType = typeof(TestClass.NestedClass);
 
         var result = resolver.ResolveNS(nestedType, "");
@@ -59,7 +69,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithRazorSuffix_GeneratesRazorPath()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var testType = typeof(TestClass);
 
         var result = resolver.ResolveNS(testType, ".razor");
@@ -73,7 +83,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithEntrySuffix_GeneratesEntryPath()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var testType = typeof(TestClass);
 
         var result = resolver.ResolveNS(testType, ".entry");
@@ -87,7 +97,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithEmptySuffix_GeneratesBasicPath()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var testType = typeof(TestClass);
 
         var result = resolver.ResolveNS(testType, "");
@@ -103,7 +113,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithGenericType_RemovesGenericArityFromPath()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var result = resolver.ResolveNS(typeof(GenericTestClass<>), ".razor");
 
         Assert.DoesNotContain("`1", result);
@@ -113,7 +123,7 @@ public class INSResolverTests
     [Fact]
     public void DefaultNSResolver_WithLogicalFullName_RemovesGenericArityFromPath()
     {
-        var resolver = new DefaultNSResolver();
+        INSResolver resolver = new DefaultNSResolver();
         var result = resolver.ResolveNS("BlazorTS.SourceGenerator.Tests.GenericTestClass`1", ".razor");
 
         Assert.DoesNotContain("`1", result);
@@ -123,23 +133,23 @@ public class INSResolverTests
     [Fact]
     public void CustomNSResolver_ImplementsInterface_WorksCorrectly()
     {
-        var customResolver = new CustomTestResolver();
+        INSResolver customResolver = new CustomTestResolver();
         var testType = typeof(TestClass);
 
         var result = customResolver.ResolveNS(testType, "");
 
-        Assert.Equal("/test/custom/TestClass.js", result);
+        Assert.Equal("/test/custom/BlazorTS.SourceGenerator.Tests.INSResolverTests.TestClass.js", result);
     }
 
     [Fact]
     public void CustomNSResolver_WithSuffix_IncludesSuffixInPath()
     {
-        var customResolver = new CustomTestResolver();
+        INSResolver customResolver = new CustomTestResolver();
         var testType = typeof(TestClass);
 
         var result = customResolver.ResolveNS(testType, ".razor");
 
-        Assert.Equal("/test/custom/TestClass.razor.js", result);
+        Assert.Equal("/test/custom/BlazorTS.SourceGenerator.Tests.INSResolverTests.TestClass.razor.js", result);
     }
 
     private class TestClass
@@ -153,14 +163,9 @@ public class INSResolverTests
 
     private class CustomTestResolver : INSResolver
     {
-        public string ResolveNS(Type tsType, string suffix)
-        {
-            return $"/test/custom/{tsType.Name}{suffix}.js";
-        }
-
         public string ResolveNS(string fullName, string suffix)
         {
-            return $"/test/custom/{fullName}{suffix}.js";
+            return $"/test/custom/{fullName.Replace("+", ".")}{suffix}.js";
         }
     }
 }

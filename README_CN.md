@@ -160,9 +160,9 @@ builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 默认情况下，BlazorTS 会把逻辑组件名或模块名映射到 `/js/...`。
 
 ```csharp
-builder.Services.AddBlazorTS((type, suffix) =>
+builder.Services.AddBlazorTS((fullName, suffix) =>
 {
-    var path = type.FullName!.Replace('.', '/');
+    var path = fullName.Replace('.', '/');
     return $"/scripts/{path}{suffix}.js";
 });
 ```
@@ -170,12 +170,6 @@ builder.Services.AddBlazorTS((type, suffix) =>
 ```csharp
 public class CustomResolver : INSResolver
 {
-    public string ResolveNS(Type tsType, string suffix)
-    {
-        var path = tsType.FullName!.Replace('.', '/');
-        return $"/lib/{path}{suffix}.js";
-    }
-
     public string ResolveNS(string fullName, string suffix)
     {
         var path = fullName.Replace('.', '/');
