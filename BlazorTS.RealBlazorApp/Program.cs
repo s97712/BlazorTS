@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddScripts(BlazorTS.RealBlazorApp.Generated.Scripts.AddScripts);
+builder.Services.AddBlazorTS();
 
 var app = builder.Build();
 

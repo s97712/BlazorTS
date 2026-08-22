@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -26,8 +27,8 @@ public static class BlazorTSServiceCollectionExtensions
     /// <returns>服务集合</returns>
     public static IServiceCollection AddBlazorTS(this IServiceCollection services)
     {
-        services.AddScoped<BlazorTS.INSResolver, BlazorTS.DefaultNSResolver>();
-        services.AddScoped<BlazorTS.ScriptBridge>();
+        services.TryAddScoped<BlazorTS.INSResolver, BlazorTS.DefaultNSResolver>();
+        services.TryAddScoped<BlazorTS.ScriptBridge>();
         return services;
     }
 
@@ -41,8 +42,8 @@ public static class BlazorTSServiceCollectionExtensions
         this IServiceCollection services,
         Func<Type, string, string> customResolver)
     {
-        services.AddScoped<BlazorTS.INSResolver>(_ => new BlazorTS.DefaultNSResolver(customResolver));
-        services.AddScoped<BlazorTS.ScriptBridge>();
+        services.Replace(ServiceDescriptor.Scoped<BlazorTS.INSResolver>(_ => new BlazorTS.DefaultNSResolver(customResolver)));
+        services.TryAddScoped<BlazorTS.ScriptBridge>();
         return services;
     }
 
@@ -55,8 +56,8 @@ public static class BlazorTSServiceCollectionExtensions
     public static IServiceCollection AddBlazorTS<TResolver>(this IServiceCollection services)
         where TResolver : class, BlazorTS.INSResolver
     {
-        services.AddScoped<BlazorTS.INSResolver, TResolver>();
-        services.AddScoped<BlazorTS.ScriptBridge>();
+        services.Replace(ServiceDescriptor.Scoped<BlazorTS.INSResolver, TResolver>());
+        services.TryAddScoped<BlazorTS.ScriptBridge>();
         return services;
     }
 }
