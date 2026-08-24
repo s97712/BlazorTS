@@ -53,6 +53,17 @@ TestResult.xml
 nunit-*.xml
 gen/
 dist/
+node_modules/
+.pnpm-store/
+.playwright-cli/
+.vs/
+.vscode/
+.idea/
+*.log
+.env
+.env.local
+appsettings.local.json
+core.*
 wwwroot/js/
 plans/
 plan/
