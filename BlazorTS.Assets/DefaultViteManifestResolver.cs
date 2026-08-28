@@ -20,19 +20,37 @@ public sealed class DefaultViteManifestResolver : IViteManifestResolver
     }
 
     /// <inheritdoc />
-    public string Resolve(Assembly assembly)
+    public string? Resolve(Assembly assembly)
     {
-        var applicationAssembly = Assembly.GetEntryAssembly()!;
-        var relativePath = assembly == applicationAssembly
-            ? ".vite/manifest.json"
-            : $"_content/{assembly.GetName().Name}/.vite/manifest.json";
-
+        var relativePath = GetRelativePath(assembly);
         var fileInfo = _environment.WebRootFileProvider.GetFileInfo(relativePath);
         if (fileInfo.Exists && !string.IsNullOrEmpty(fileInfo.PhysicalPath))
         {
             return fileInfo.PhysicalPath;
         }
 
-        throw new FileNotFoundException($"Vite manifest file '{relativePath}' not found via WebRootFileProvider.");
+        return null;
+    }
+
+    /// <inheritdoc />
+    public string ResolveOrThrow(Assembly assembly)
+    {
+        var manifestPath = Resolve(assembly);
+        if (manifestPath is not null)
+        {
+            return manifestPath;
+        }
+
+        var relativePath = GetRelativePath(assembly);
+        throw new FileNotFoundException(
+            $"Vite manifest file for assembly '{assembly.GetName().Name}' at '{relativePath}' not found via WebRootFileProvider.");
+    }
+
+    private static string GetRelativePath(Assembly assembly)
+    {
+        var applicationAssembly = Assembly.GetEntryAssembly()!;
+        return assembly == applicationAssembly
+            ? ".vite/manifest.json"
+            : $"_content/{assembly.GetName().Name}/.vite/manifest.json";
     }
 }

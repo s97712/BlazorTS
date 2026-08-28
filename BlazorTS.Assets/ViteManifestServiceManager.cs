@@ -74,7 +74,7 @@ public sealed class ViteManifestServiceManager
     /// <returns>对应程序集的清单服务实例。</returns>
     public ViteManifestService GetService(Assembly assembly)
     {
-        var manifestPath = _resolver.Resolve(assembly);
+        var manifestPath = _resolver.ResolveOrThrow(assembly);
         return _services.GetOrAdd(manifestPath, static path => new ViteManifestService(path));
     }
 }
