@@ -15,9 +15,9 @@ BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析**
 ## ✨ 特性
 
 - 🔄 **编译时生成**：自动分析 TypeScript 文件并生成 C# 包装代码
-- 🎯 **类型安全**：为导出的 TypeScript 函数生成强类型 C# API
+- 🎯 **类型安全**：为导出的 TypeScript 函数与 `interface` 声明生成强类型 C# API 与数据模型
 - 🚀 **零配置**：最小配置即可使用
-- 🔧 **自动注册**：通过 `AddBlazorTSScripts()` 注册所有生成的互操作服务
+- 🔧 **统一注册**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册所有生成的互操作服务
 - 🌳 **精确解析**：使用 Tree-sitter 精确处理 TypeScript 语法
 
 ## 📦 安装
@@ -107,7 +107,7 @@ public class CounterTSInterop(ScriptBridge invoker)
 
 - **命名**：`my-utils.entry.ts` 或 `api.entry.ts`
 - **生成结果**：普通 C# 服务类
-- **使用方式**：通过 `AddBlazorTSScripts()` 注册后，在任意位置注入使用
+- **使用方式**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册后，在任意位置注入使用
 
 ```typescript
 // Services/Formatter.entry.ts
@@ -117,7 +117,7 @@ export function formatCurrency(amount: number): string {
 ```
 
 ```csharp
-builder.Services.AddBlazorTSScripts();
+builder.Services.AddScripts(TestApp.Generated.Scripts.AddScripts);
 ```
 
 ```csharp
@@ -195,6 +195,10 @@ builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 | `any` | `object?` | `Task<object?>` |
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
+| `T[]` / `Array<T>` | `T[]` | `Task<T[]>` |
+| `interface Name` | `Name` | `Task<Name>` |
+
+导出的 TypeScript `interface` 会生成同命名空间下的 C# `public sealed class`，其中必填属性生成 `required` 属性，可选属性生成可空属性，并支持接口嵌套引用与数组。
 
 ## 真实 Blazor 回归验证
 
@@ -210,7 +214,7 @@ builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 - 泛型仅作用于组件 partial class
 - `Scripts` 自动注入在真实 Razor 编译语义下成立
 - 互操作服务保持顶层非泛型 `*TSInterop`
-- `AddBlazorTSScripts()` 会把对应互操作类型注册进 DI
+- `AddScripts(Project.Generated.Scripts.AddScripts)` 会把对应互操作类型注册进 DI
 
 ## 📖 更多文档
 

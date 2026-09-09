@@ -265,7 +265,7 @@ public sealed class TSAnalyzer : IDisposable
     private TSFunction? ParseArrowFunction(TSNode arrowNode, string code, string functionName)
     {
         var parent = arrowNode.parent();
-        var isAsync = !parent.is_null() && HasAsyncModifier(parent);
+        var isAsync = HasAsyncModifier(arrowNode) || (!parent.is_null() && HasAsyncModifier(parent));
 
         var function = new TSFunction
         {

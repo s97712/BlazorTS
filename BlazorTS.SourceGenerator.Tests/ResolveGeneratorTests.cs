@@ -95,6 +95,33 @@ export function saveUser(user: User): boolean { return true; }") },
     }
 
     [Fact]
+    public void ResolveGenerator_WithPromiseReturnTypes_GeneratesExpectedTasks()
+    {
+        var tsContent = @"
+export async function delay(): Promise<void> {}
+export async function fetchText(): Promise<string> { return 'ok'; }
+export async function fetchNumber(): Promise<number> { return 123; }
+export async function fetchFlag(): Promise<boolean> { return true; }
+export async function fetchTags(): Promise<string[]> { return []; }
+export async function fetchScores(): Promise<Array<number>> { return []; }
+export async function fetchPayload(): Promise<any> { return {}; }
+";
+        var generatorResult = RunGenerator(
+            new ResolveGenerator(),
+            new[] { CreateAdditionalText("Services/AsyncService.entry.ts", tsContent) },
+            "/test/project/", "TestApp");
+
+        var code = generatorResult.GeneratedSources.Single(source => source.HintName.EndsWith(".entry.g.cs")).SourceText.ToString();
+        Assert.Contains("public async Task delay()", code);
+        Assert.Contains("public async Task<string> fetchText()", code);
+        Assert.Contains("public async Task<double> fetchNumber()", code);
+        Assert.Contains("public async Task<bool> fetchFlag()", code);
+        Assert.Contains("public async Task<string[]> fetchTags()", code);
+        Assert.Contains("public async Task<double[]> fetchScores()", code);
+        Assert.Contains("public async Task<object?> fetchPayload()", code);
+    }
+
+    [Fact]
     public void ResolveGenerator_WithEntryTsFile_GeneratesStandardClassAndExtension()
     {
         var generator = new ResolveGenerator();

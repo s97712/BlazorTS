@@ -4,10 +4,11 @@
 
 ## 工作原理
 
-1. **编译时分析**：源代码生成器扫描 `.razor.ts` 和 `.entry.ts` 文件，使用 TypeScriptParser 解析导出函数。
+1. **编译时分析**：源代码生成器扫描 `.razor.ts` 和 `.entry.ts` 文件，使用 Tree-sitter 分析导出函数与 `interface` 声明。
 2. **代码生成**：
    - 对 `.razor.ts` 生成组件对应的 `partial class`，并为其配套生成顶层 `*TSInterop` 互操作类。
    - 对 `.entry.ts` 生成可直接注入的服务类。
+   - 对 `interface` 声明生成强类型的 C# `public sealed class` 数据模型，支持 `required` 属性、可空属性、接口嵌套与数组。
 3. **服务注册**：每个项目生成 `Generated.Scripts.AddScripts(IServiceCollection)` 静态方法，宿主通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册生成的互操作服务。
 
 ## 使用步骤
@@ -188,6 +189,10 @@ public class Formatter(ScriptBridge invoker)
 | `any` | `object?` | `Task<object?>` |
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
+| `T[]` / `Array<T>` | `T[]` | `Task<T[]>` |
+| `interface Name` | `Name` | `Task<Name>` |
+
+TypeScript `interface` 映射为 C# `public sealed class`。非可选字段生成 `required` 属性，可选字段生成可空类型，支持在方法入参与返回值中直接作为强类型传递。
 
 ## Suffix 参数说明
 

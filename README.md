@@ -15,9 +15,9 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 ## ✨ Features
 
 - 🔄 **Compile-time generation**: Analyze TypeScript files and generate C# wrappers automatically
-- 🎯 **Type safety**: Strongly typed C# APIs for exported TypeScript functions
+- 🎯 **Type safety**: Strongly typed C# APIs and models for exported TypeScript functions and interfaces
 - 🚀 **Zero configuration**: Minimal setup, works out of the box
-- 🔧 **Automatic registration**: Generated interop services are registered through `AddScripts(Project.Generated.Scripts.AddScripts)`
+- 🔧 **Unified registration**: Generated interop services are registered through `AddScripts(Project.Generated.Scripts.AddScripts)`
 - 🌳 **Precise parsing**: Uses Tree-sitter for accurate TypeScript syntax handling
 
 ## 📦 Installation
@@ -191,6 +191,10 @@ Resolvers are called in registration order. Return a module path for a match and
 | `any` | `object?` | `Task<object?>` |
 | `void` | - | `Task` |
 | `Promise<T>` | - | `Task<T>` |
+| `T[]` / `Array<T>` | `T[]` | `Task<T[]>` |
+| `interface Name` | `Name` | `Task<Name>` |
+
+Exported TypeScript `interface` declarations generate `public sealed class` models in the corresponding C# namespace, with `required` properties for mandatory fields, nullable annotations for optional fields, and recursive type resolution for interface references and arrays.
 
 ## Real Blazor Regression Coverage
 

@@ -25,6 +25,28 @@ export function getUser(): Promise<User> { throw new Error(); }");
     }
 
     [Fact]
+    public void Analyze_PromiseReturnTypes_ExtractsCorrectly()
+    {
+        var code = @"
+export async function fetchVoid(): Promise<void> {}
+export async function fetchText(): Promise<string> { return 'ok'; }
+export async function fetchNumber(): Promise<number> { return 42; }
+export async function fetchItems(): Promise<string[]> { return []; }
+export async function fetchList(): Promise<Array<number>> { return []; }
+export const fetchArrow = async (): Promise<boolean> => true;
+";
+        var functions = _analyzer.Analyze(code).Functions;
+
+        Assert.Equal(6, functions.Count);
+        AssertFunction(functions[0], "fetchVoid", "Promise<void>", true, 0);
+        AssertFunction(functions[1], "fetchText", "Promise<string>", true, 0);
+        AssertFunction(functions[2], "fetchNumber", "Promise<number>", true, 0);
+        AssertFunction(functions[3], "fetchItems", "Promise<string[]>", true, 0);
+        AssertFunction(functions[4], "fetchList", "Promise<Array<number>>", true, 0);
+        AssertFunction(functions[5], "fetchArrow", "Promise<boolean>", true, 0);
+    }
+
+    [Fact]
     public void ExtractFunctions_SimpleFunction_ReturnsCorrectFunction()
     {
         var code = "export function greet(name: string): string { return `Hello, ${name}!`; }";
