@@ -27,6 +27,35 @@ public class RealBlazorGenericComponentTests
         Assert.Contains("T:BlazorTS.RealBlazorApp.Components.Pages.GenericProbe", memberNames);
         Assert.Contains("P:BlazorTS.RealBlazorApp.Components.Pages.GenericProbe.Scripts", memberNames);
         Assert.Contains("M:BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop.describeCount(System.Double)", memberNames);
+        Assert.Contains("M:BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop.describeUser(BlazorTS.RealBlazorApp.Components.Pages.User)", memberNames);
+    }
+
+    [Fact]
+    public void GeneratedInterop_Generates_InterfaceModels_And_Resolves_InterfaceMethodTypes()
+    {
+        var assembly = typeof(BlazorTS.RealBlazorApp.Components.Pages.GenericProbe<>).Assembly;
+        var addressType = assembly.GetType("BlazorTS.RealBlazorApp.Components.Pages.Address");
+        var userType = assembly.GetType("BlazorTS.RealBlazorApp.Components.Pages.User");
+        var interopType = assembly.GetType("BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop");
+
+        Assert.NotNull(addressType);
+        Assert.NotNull(userType);
+        Assert.NotNull(interopType);
+
+        var city = addressType!.GetProperty("city");
+        var name = userType!.GetProperty("name");
+        var address = userType.GetProperty("address");
+        var tags = userType.GetProperty("tags");
+
+        Assert.Equal(typeof(string), city!.PropertyType);
+        Assert.Equal(typeof(string), name!.PropertyType);
+        Assert.Equal(addressType, address!.PropertyType);
+        Assert.Equal(typeof(string[]), tags!.PropertyType);
+
+        var method = interopType!.GetMethod("describeUser", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        Assert.NotNull(method);
+        Assert.Equal(typeof(Task<string>), method!.ReturnType);
+        Assert.Equal(userType, Assert.Single(method.GetParameters()).ParameterType);
     }
 
     [Fact]

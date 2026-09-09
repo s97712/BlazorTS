@@ -73,6 +73,28 @@ public class ResolveGeneratorTests : TestBase
     }
 
     [Fact]
+    public void ResolveGenerator_WithInterfaces_GeneratesStronglyTypedModels()
+    {
+        var generatorResult = RunGenerator(
+            new ResolveGenerator(),
+            new[] { CreateAdditionalText("Services/User.entry.ts", @"
+export interface Address { city: string; }
+export interface User { name: string; address: Address; tags?: string[]; }
+export function getUser(): Promise<User> { throw new Error(); }
+export function saveUser(user: User): boolean { return true; }") },
+            "/test/project/", "TestApp");
+
+        var code = generatorResult.GeneratedSources.Single(source => source.HintName.EndsWith(".entry.g.cs")).SourceText.ToString();
+        Assert.Contains("public sealed class Address", code);
+        Assert.Contains("public required string city", code);
+        Assert.Contains("public sealed class User", code);
+        Assert.Contains("public required Address address", code);
+        Assert.Contains("public string[]? tags", code);
+        Assert.Contains("public async Task<User> getUser()", code);
+        Assert.Contains("public async Task<bool> saveUser(User user)", code);
+    }
+
+    [Fact]
     public void ResolveGenerator_WithEntryTsFile_GeneratesStandardClassAndExtension()
     {
         var generator = new ResolveGenerator();
@@ -111,7 +133,7 @@ public class ResolveGeneratorTests : TestBase
 
         Assert.Single(generatorResult.GeneratedSources);
         var extensionSource = generatorResult.GeneratedSources.Single();
-        Assert.EndsWith("Scripts.g.cs", extensionSource.HintName);;
+        Assert.EndsWith("Scripts.g.cs", extensionSource.HintName);
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
     }

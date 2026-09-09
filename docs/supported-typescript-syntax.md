@@ -1,6 +1,6 @@
 # BlazorTS 支持的 TypeScript 语法
 
-本文档列出了 BlazorTS 源代码生成器当前支持的 TypeScript 导出函数语法，以及这些函数在当前生成模型中的映射方式。
+本文档列出了 BlazorTS 源代码生成器支持的 TypeScript 导出函数与 `interface` 语法，以及这些声明在生成模型中的映射方式。
 
 ## 当前生成模型
 
@@ -14,7 +14,26 @@ BlazorTS 目前有两类生成目标：
 2. **`.entry.ts`**：
    - 生成普通可注入服务类
 
-不论使用哪种文件类型，函数提取规则是一致的，区别只在于最终 C# 包装类的落点不同。
+不论使用哪种文件类型，函数与接口提取规则是一致的，区别只在于最终 C# 包装类的落点不同。
+
+## 接口声明
+
+```typescript
+export interface Address {
+    city: string;
+    zip?: number;
+}
+
+export interface User {
+    name: string;
+    address: Address;
+    tags?: string[];
+}
+
+export function getUser(): Promise<User> { /* ... */ }
+```
+
+接口生成同命名空间下的 C# `public sealed class`。必填属性使用 `required`，可选属性使用 nullable 类型；接口引用、数组和 `Array<T>` 会递归映射为对应 C# 类型。
 
 ## ✅ 支持的导出函数语法
 
@@ -153,10 +172,12 @@ export default function defaultFunction() { }
 | `void` | `Task` | 无返回值 |
 | `Promise<T>` | `Task<T>` | 异步返回 |
 | `Promise<void>` | `Task` | 异步无返回值 |
+| `T[]` / `Array<T>` | `T[]` | 数组类型 |
+| `interface Name` | `Name` | 强类型数据模型 (`public sealed class`) |
 
 ## 🔧 最佳实践
 
-1. 仅导出需要暴露给 C# 的函数。
+1. 仅导出需要暴露给 C# 的函数与接口。
 2. 尽量提供明确的类型注解，以获得稳定的 C# 映射结果。
 3. 使用清晰的参数名，它们会直接出现在生成的 C# 方法签名中。
 4. 对返回类型进行显式声明，避免不必要的推断差异。
