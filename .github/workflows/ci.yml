@@ -140,6 +140,9 @@ jobs:
     needs: integration-test
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write
+      contents: read
     
     steps:
     - name: Download NuGet Packages
@@ -148,9 +151,13 @@ jobs:
         name: nuget-packages
         path: ./artifacts
         
+    - name: NuGet Login (OIDC)
+      uses: NuGet/login@v1
+      with:
+        user: s97712
+
     - name: Publish to NuGet
       run: |
         dotnet nuget push artifacts/*.nupkg \
-          --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
