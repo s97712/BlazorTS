@@ -341,7 +341,7 @@ public class ResolveGenerator : IIncrementalGenerator
     private static string GenerateExtension(List<string> injectableTypeNames, string rootNamespace)
     {
         var servicesRegistration = injectableTypeNames
-            .Select(name => $"        services.AddScoped<{name}>();")
+            .Select(name => $"        services.AddScoped<global::{name}>();")
             .ToDelimitedString("\n");
         var normalizedNamespace = string.IsNullOrEmpty(rootNamespace)
             ? "BlazorTS.Generated"

@@ -40,7 +40,7 @@ public class ResolveGeneratorTests : TestBase
         var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddScoped<TestApp.Components.Pages.MyComponentTSInterop>();", extensionCode);
+        Assert.Contains("services.AddScoped<global::TestApp.Components.Pages.MyComponentTSInterop>();", extensionCode);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class ResolveGeneratorTests : TestBase
 
         var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("services.AddScoped<TestApp.Components.GridTSInterop>();", extensionCode);
+        Assert.Contains("services.AddScoped<global::TestApp.Components.GridTSInterop>();", extensionCode);
         Assert.DoesNotContain("Grid<TItem>.TSInterop", extensionCode);
     }
 
@@ -146,7 +146,7 @@ export async function fetchPayload(): Promise<any> { return {}; }
         Assert.NotNull(extensionSource.SourceText);
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddScoped<TestApp.Services.MyService>();", extensionCode);
+        Assert.Contains("services.AddScoped<global::TestApp.Services.MyService>();", extensionCode);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ export async function fetchPayload(): Promise<any> { return {}; }
         var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddScoped<MyApp.Api.Client>();", extensionCode);
-        Assert.Contains("services.AddScoped<MyApp.Components.MyPageTSInterop>();", extensionCode);
+        Assert.Contains("services.AddScoped<global::MyApp.Api.Client>();", extensionCode);
+        Assert.Contains("services.AddScoped<global::MyApp.Components.MyPageTSInterop>();", extensionCode);
     }
 }

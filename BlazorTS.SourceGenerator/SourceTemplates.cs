@@ -57,7 +57,7 @@ internal static class SourceTemplates
             /// </summary>
             public class {{component.ClassName}}(ScriptBridge invoker)
             {
-                private readonly string url = invoker.ResolveNS(typeof({{component.FullName}}), ".entry");
+                private readonly string url = invoker.ResolveNS(typeof(global::{{component.FullName}}), ".entry");
 
             {{methodsCode}}
             }
