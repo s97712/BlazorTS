@@ -17,7 +17,7 @@ BlazorTS 是一个源代码生成器库，基于 **Tree-sitter 语法树解析**
 - 🔄 **编译时生成**：自动分析 TypeScript 文件并生成 C# 包装代码
 - 🎯 **类型安全**：为导出的 TypeScript 函数与 `interface` 声明生成强类型 C# API 与数据模型
 - 🚀 **零配置**：最小配置即可使用
-- 🔧 **统一注册**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册所有生成的互操作服务
+- 🔧 **服务注册**：通过 `AddBlazorTS()` 注册基础服务和 `ScriptsAccess<>`。
 - 🌳 **精确解析**：使用 Tree-sitter 精确处理 TypeScript 语法
 
 ## 📦 安装
@@ -57,7 +57,7 @@ dotnet add package Microsoft.TypeScript.MSBuild # 可选
 - **生成结果**：
   - 为组件生成 `partial class`
   - 为组件生成顶层 `*TSInterop` 互操作类
-  - 在组件上自动注入 `Scripts` 属性
+  - 注入组件对应的 `ScriptsAccess<T>`，通过只读的 `Scripts` 属性返回互操作实例。
 - **使用方式**：通过 `Scripts` 直接调用导出的 TypeScript 函数
 
 **示例**
@@ -82,12 +82,14 @@ export function increment(count: number): number {
 }
 ```
 
-BlazorTS 在概念上会生成如下代码：
+对应的 C# 代码：
 
 ```csharp
 public partial class Counter
 {
-    [Inject] public CounterTSInterop Scripts { get; set; } = null!;
+    [Inject] public ScriptsAccess<CounterTSInterop> ScriptsAccess { get; set; } = null!;
+
+    public CounterTSInterop Scripts => ScriptsAccess.Value;
 }
 
 public class CounterTSInterop(ScriptBridge invoker)
@@ -107,7 +109,7 @@ public class CounterTSInterop(ScriptBridge invoker)
 
 - **命名**：`my-utils.entry.ts` 或 `api.entry.ts`
 - **生成结果**：普通 C# 服务类
-- **使用方式**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册后，在任意位置注入使用
+- **使用方式**：通过 `AddScripts(Project.Generated.Scripts.AddScripts)` 注册生成的服务，再通过依赖注入使用。
 
 ```typescript
 // Services/Formatter.entry.ts
@@ -147,13 +149,15 @@ builder.Services.AddScripts(TestApp.Generated.Scripts.AddScripts);
 
 ## 注册服务
 
+`AddBlazorTS()` 以 Scoped 生命周期注册 `NSResolver`、`ScriptBridge` 和开放泛型 `ScriptsAccess<>`。`ScriptsAccess<T>` 在构造时创建互操作实例，组件的 `Scripts` 属性返回该实例。
+
+生成器在 `{RootNamespace}.Generated` 命名空间下生成 `Scripts.AddScripts(IServiceCollection)`，用于注册该项目的 `.entry.ts` 服务。宿主通过下面的调用注册这些服务和 BlazorTS 基础服务。
+
 ```csharp
 using MyApp.Generated;
 
 builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
 ```
-
-源生成器会在每个类库的根命名空间下生成 `Scripts.AddScripts(IServiceCollection)`。宿主项目使用完整方法名传入 `AddScripts`，例如 `MyApp.Generated.Scripts.AddScripts`。
 
 ## 🛠️ 路径解析
 
@@ -200,21 +204,9 @@ builder.Services.AddBlazorTSResolver((fullName, suffix) =>
 
 导出的 TypeScript `interface` 会生成同命名空间下的 C# `public sealed class`，其中必填属性生成 `required` 属性，可选属性生成可空属性，并支持接口嵌套引用与数组。
 
-## 真实 Blazor 回归验证
+## Blazor 回归测试
 
-仓库中新增了一个最小真实 Blazor 工程 `BlazorTS.RealBlazorApp/`，用于补足 Roslyn 生成器测试之外的真实 Razor 编译验证。
-
-- `BlazorTS.RealBlazorApp/`：最小真实 Blazor Web App，仅保留泛型组件验证所需内容
-- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor`：真实泛型 Razor 组件
-- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor.ts`：组件配套脚本，生成顶层 `GenericProbeTSInterop`
-- `BlazorTS.RealBlazorApp.Tests/`：通过反射、DI 和真实编译产物断言当前已定稿模型
-
-这个场景重点覆盖：
-
-- 泛型仅作用于组件 partial class
-- `Scripts` 自动注入在真实 Razor 编译语义下成立
-- 互操作服务保持顶层非泛型 `*TSInterop`
-- `AddScripts(Project.Generated.Scripts.AddScripts)` 会把对应互操作类型注册进 DI
+`BlazorTS.RealBlazorApp` 提供泛型组件 `GenericProbe<TItem>` 及其配套脚本。`BlazorTS.RealBlazorApp.Tests` 检查生成类型、方法签名和 `ScriptsAccess<>` 的 Scoped 注册，并验证 `ScriptsAccess<T>` 能够创建互操作实例。
 
 ## 📖 更多文档
 

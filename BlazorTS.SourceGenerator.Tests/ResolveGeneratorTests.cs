@@ -32,7 +32,8 @@ public class ResolveGeneratorTests : TestBase
         var code = generatedClass.SourceText.ToString();
         Assert.Contains("namespace TestApp.Components.Pages;", code);
         Assert.Contains("public partial class MyComponent", code);
-        Assert.Contains("[Inject] public MyComponentTSInterop Scripts { get; set; } = null!;", code);
+        Assert.Contains("[Inject] public ScriptsAccess<MyComponentTSInterop> ScriptsAccess { get; set; } = null!;", code);
+        Assert.Contains("public MyComponentTSInterop Scripts => ScriptsAccess.Value;", code);
         Assert.Contains("public class MyComponentTSInterop(ScriptBridge invoker)", code);
         Assert.Contains("public async Task<string> greet(string name)", code);
         Assert.Contains("invoker.ResolveNS(\"TestApp.Components.Pages.MyComponent\", \".razor\")", code);
@@ -40,7 +41,7 @@ public class ResolveGeneratorTests : TestBase
         var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
-        Assert.Contains("services.AddScoped<global::TestApp.Components.Pages.MyComponentTSInterop>();", extensionCode);
+        Assert.DoesNotContain("services.AddScoped<global::TestApp.Components.Pages.MyComponentTSInterop>();", extensionCode);
     }
 
     [Fact]
@@ -61,14 +62,15 @@ public class ResolveGeneratorTests : TestBase
         var code = generatedClass.SourceText.ToString();
         Assert.Contains("public partial class Grid<TItem>", code);
         Assert.Contains("where TItem : class", code);
-        Assert.Contains("[Inject] public GridTSInterop Scripts { get; set; } = null!;", code);
+        Assert.Contains("[Inject] public ScriptsAccess<GridTSInterop> ScriptsAccess { get; set; } = null!;", code);
+        Assert.Contains("public GridTSInterop Scripts => ScriptsAccess.Value;", code);
         Assert.Contains("public class GridTSInterop(ScriptBridge invoker)", code);
         Assert.Contains("invoker.ResolveNS(\"TestApp.Components.Grid\", \".razor\")", code);
 
 
         var extensionSource = generatorResult.GeneratedSources.Single(s => s.HintName.EndsWith("Scripts.g.cs"));
         var extensionCode = extensionSource.SourceText.ToString();
-        Assert.Contains("services.AddScoped<global::TestApp.Components.GridTSInterop>();", extensionCode);
+        Assert.DoesNotContain("services.AddScoped<global::TestApp.Components.GridTSInterop>();", extensionCode);
         Assert.DoesNotContain("Grid<TItem>.TSInterop", extensionCode);
     }
 
@@ -198,6 +200,6 @@ export async function fetchPayload(): Promise<any> { return {}; }
         var extensionCode = extensionSource.SourceText.ToString();
         Assert.Contains("public static void AddScripts(IServiceCollection services)", extensionCode);
         Assert.Contains("services.AddScoped<global::MyApp.Api.Client>();", extensionCode);
-        Assert.Contains("services.AddScoped<global::MyApp.Components.MyPageTSInterop>();", extensionCode);
+        Assert.DoesNotContain("services.AddScoped<global::MyApp.Components.MyPageTSInterop>();", extensionCode);
     }
 }

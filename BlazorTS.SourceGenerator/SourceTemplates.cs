@@ -21,10 +21,14 @@ internal static class SourceTemplates
             public partial class {{component.ClassName}}{{component.TypeParameterListText}}{{whereClauseSuffix}}
             {
                 /// <summary>
-                /// BLAZORTS-DESIGN-GUARD: 保留组件自动注入，但将互操作类型提升为顶层服务，
-                /// 这样组件泛型参数不会进入 DI 服务模型。
+                /// Gets or sets the script accessor for {{component.ClassName}}.razor.ts.
                 /// </summary>
-                [Inject] public {{component.InteropClassName}} Scripts { get; set; } = null!;
+                [Inject] public ScriptsAccess<{{component.InteropClassName}}> ScriptsAccess { get; set; } = null!;
+
+                /// <summary>
+                /// Gets the interop instance for {{component.ClassName}}.razor.ts.
+                /// </summary>
+                public {{component.InteropClassName}} Scripts => ScriptsAccess.Value;
             }
 
             /// <summary>
@@ -144,12 +148,12 @@ internal static class SourceTemplates
             namespace {{namespaceName}};
 
             /// <summary>
-            /// Registers TypeScript interop services generated for this project.
+            /// Registers the services generated from this project's .entry.ts files.
             /// </summary>
             public static class Scripts
             {
                 /// <summary>
-                /// Registers all TypeScript interop services generated for this project.
+                /// Registers the services generated from this project's .entry.ts files.
                 /// </summary>
                 public static void AddScripts(IServiceCollection services)
                 {

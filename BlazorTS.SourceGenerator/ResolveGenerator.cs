@@ -58,15 +58,19 @@ public class ResolveGenerator : IIncrementalGenerator
                 return;
             }
 
-            var injectableTypeNames = new List<string>(files.Length);
+            var entryTypeNames = new List<string>(files.Length);
             foreach (var file in files)
             {
-                injectableTypeNames.Add(Generate(spc, file));
+                var typeName = Generate(spc, file);
+                if (!file.IsRazorComponent)
+                {
+                    entryTypeNames.Add(typeName);
+                }
             }
 
-            // BLAZORTS-DESIGN-GUARD: 泛型仅作用于 Razor partial class，
-            // 互操作类型统一提升为顶层可注入服务，避免让 DI 服务类型被组件泛型污染。
-            var extensionCode = GenerateExtension(injectableTypeNames, meta.ns ?? string.Empty);
+            // 组件通过 ScriptsAccess<T> 获取互操作实例。
+            // 生成的注册方法负责注册 .entry.ts 服务。
+            var extensionCode = GenerateExtension(entryTypeNames, meta.ns ?? string.Empty);
             var extensionNamespace = string.IsNullOrEmpty(meta.ns)
                 ? "BlazorTS.Generated"
                 : $"{meta.ns}.Generated";
@@ -338,9 +342,9 @@ public class ResolveGenerator : IIncrementalGenerator
             returnType);
     }
 
-    private static string GenerateExtension(List<string> injectableTypeNames, string rootNamespace)
+    private static string GenerateExtension(List<string> entryTypeNames, string rootNamespace)
     {
-        var servicesRegistration = injectableTypeNames
+        var servicesRegistration = entryTypeNames
             .Select(name => $"        services.AddScoped<global::{name}>();")
             .ToDelimitedString("\n");
         var normalizedNamespace = string.IsNullOrEmpty(rootNamespace)
