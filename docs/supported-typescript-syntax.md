@@ -2,19 +2,19 @@
 
 本文档列出了 BlazorTS 源代码生成器支持的 TypeScript 导出函数与 `interface` 语法，以及这些声明在生成模型中的映射方式。
 
-## 当前生成模型
+## 生成代码
 
-BlazorTS 目前有两类生成目标：
+BlazorTS 支持两类脚本文件：
 
 1. **`.razor.ts`**：
    - 生成组件对应的 `partial class`
    - 生成顶层 `*TSInterop` 互操作类
-   - 在组件中自动注入 `Scripts`
+   - 生成 `ScriptsAccess<T>` 注入属性，`Scripts` 属性返回该访问器持有的互操作实例。
 
 2. **`.entry.ts`**：
    - 生成普通可注入服务类
 
-不论使用哪种文件类型，函数与接口提取规则是一致的，区别只在于最终 C# 包装类的落点不同。
+两类脚本使用相同的函数和接口解析规则。组件脚本生成组件 partial class 和互操作类，独立模块脚本生成服务类。
 
 ## 接口声明
 
@@ -193,12 +193,14 @@ export function showMessage(message: string): void {
 }
 ```
 
-概念化生成结果：
+对应的 C# 代码：
 
 ```csharp
 public partial class MyComponent
 {
-    [Inject] public MyComponentTSInterop Scripts { get; set; } = null!;
+    [Inject] public ScriptsAccess<MyComponentTSInterop> ScriptsAccess { get; set; } = null!;
+
+    public MyComponentTSInterop Scripts => ScriptsAccess.Value;
 }
 
 public class MyComponentTSInterop(ScriptBridge invoker)
@@ -229,7 +231,7 @@ export async function saveData(data: any): Promise<boolean> {
 }
 ```
 
-概念化生成结果：
+对应的 C# 代码：
 
 ```csharp
 public class Utils(ScriptBridge invoker)

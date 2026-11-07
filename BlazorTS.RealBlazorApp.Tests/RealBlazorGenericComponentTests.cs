@@ -59,17 +59,34 @@ public class RealBlazorGenericComponentTests
     }
 
     [Fact]
-    public void AddBlazorTSScripts_Registers_GenericComponentInterop_AsConcreteService()
+    public void AddScripts_RegistersScopedScriptsAccess()
     {
         var services = new ServiceCollection();
         services.AddScripts(BlazorTS.RealBlazorApp.Generated.Scripts.AddScripts);
 
         var descriptor = services.SingleOrDefault(service =>
-            service.ServiceType.FullName == "BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop");
+            service.ServiceType == typeof(ScriptsAccess<>));
 
         Assert.NotNull(descriptor);
-        Assert.Equal(descriptor!.ServiceType, descriptor.ImplementationType);
-        Assert.DoesNotContain("`", descriptor.ServiceType.FullName);
+        Assert.Equal(ServiceLifetime.Scoped, descriptor!.Lifetime);
+        Assert.DoesNotContain(services, service =>
+            service.ServiceType.FullName == "BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop");
+    }
+
+    [Fact]
+    public void ScriptsAccess_CreatesGeneratedInterop()
+    {
+        var services = new ServiceCollection();
+        services.AddScripts(BlazorTS.RealBlazorApp.Generated.Scripts.AddScripts);
+        services.AddBlazorTSResolver((fullName, suffix) => $"/js/{fullName}{suffix}.js");
+        services.AddSingleton<Microsoft.JSInterop.IJSRuntime>(new StubJSRuntime());
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var access = scope.ServiceProvider
+            .GetRequiredService<ScriptsAccess<BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop>>();
+
+        Assert.IsType<BlazorTS.RealBlazorApp.Components.Pages.GenericProbeTSInterop>(access.Value);
     }
 
     [Fact]
@@ -104,5 +121,14 @@ public class RealBlazorGenericComponentTests
         var parameter = Assert.Single(method.GetParameters());
         Assert.Equal("count", parameter.Name);
         Assert.Equal(typeof(double), parameter.ParameterType);
+    }
+
+    private sealed class StubJSRuntime : Microsoft.JSInterop.IJSRuntime
+    {
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
+            throw new NotSupportedException();
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) =>
+            throw new NotSupportedException();
     }
 }

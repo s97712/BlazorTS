@@ -32,6 +32,7 @@ public static class BlazorTSServiceCollectionExtensions
     {
         services.TryAddScoped<BlazorTS.NSResolver>();
         services.TryAddScoped<BlazorTS.ScriptBridge>();
+        services.TryAddScoped(typeof(BlazorTS.ScriptsAccess<>));
         return services;
     }
 

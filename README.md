@@ -17,7 +17,7 @@ BlazorTS is a source generator library that uses **Tree-sitter syntax tree parsi
 - 🔄 **Compile-time generation**: Analyze TypeScript files and generate C# wrappers automatically
 - 🎯 **Type safety**: Strongly typed C# APIs and models for exported TypeScript functions and interfaces
 - 🚀 **Zero configuration**: Minimal setup, works out of the box
-- 🔧 **Unified registration**: Generated interop services are registered through `AddScripts(Project.Generated.Scripts.AddScripts)`
+- 🔧 **Service registration**: `AddBlazorTS()` registers the core services and `ScriptsAccess<>`.
 - 🌳 **Precise parsing**: Uses Tree-sitter for accurate TypeScript syntax handling
 
 ## 📦 Installation
@@ -56,8 +56,8 @@ These files are bound to a specific Razor component.
 - **Naming**: `MyComponent.razor.ts` must pair with `MyComponent.razor`
 - **Generated output**:
   - a `partial class` for the component
-  - a top-level `*TSInterop` service for that component
-  - an auto-injected `Scripts` property on the component
+  - a top-level `*TSInterop` class for that component
+  - an injected `ScriptsAccess<T>` and a read-only `Scripts` property that returns the interop instance
 - **Usage**: call exported TypeScript functions through the generated `Scripts` property
 
 **Example**
@@ -82,12 +82,14 @@ export function increment(count: number): number {
 }
 ```
 
-Conceptually, BlazorTS generates code like this:
+Generated C# code:
 
 ```csharp
 public partial class Counter
 {
-    [Inject] public CounterTSInterop Scripts { get; set; } = null!;
+    [Inject] public ScriptsAccess<CounterTSInterop> ScriptsAccess { get; set; } = null!;
+
+    public CounterTSInterop Scripts => ScriptsAccess.Value;
 }
 
 public class CounterTSInterop(ScriptBridge invoker)
@@ -107,7 +109,7 @@ These files define reusable TypeScript modules that can be injected as services.
 
 - **Naming**: `my-utils.entry.ts` or `api.entry.ts`
 - **Generated output**: a normal C# service class
-- **Usage**: register with `AddScripts(Project.Generated.Scripts.AddScripts)` and inject where needed
+- **Usage**: register the generated services with `AddScripts(Project.Generated.Scripts.AddScripts)`, then inject them where needed.
 
 ```typescript
 // Services/Formatter.entry.ts
@@ -146,6 +148,10 @@ builder.Services.AddScripts(TestApp.Generated.Scripts.AddScripts);
 ```
 
 ## Register Services
+
+`AddBlazorTS()` registers `NSResolver`, `ScriptBridge`, and the open generic `ScriptsAccess<>` with scoped lifetimes. `ScriptsAccess<T>` creates the interop instance in its constructor. The component's `Scripts` property returns that instance.
+
+The generator creates `Scripts.AddScripts(IServiceCollection)` in the `{RootNamespace}.Generated` namespace to register the project's `.entry.ts` services. The following call registers those services and the BlazorTS core services.
 
 ```csharp
 builder.Services.AddScripts(MyApp.Generated.Scripts.AddScripts);
@@ -196,21 +202,9 @@ Resolvers are called in registration order. Return a module path for a match and
 
 Exported TypeScript `interface` declarations generate `public sealed class` models in the corresponding C# namespace, with `required` properties for mandatory fields, nullable annotations for optional fields, and recursive type resolution for interface references and arrays.
 
-## Real Blazor Regression Coverage
+## Blazor Regression Tests
 
-The repository now includes a minimal real Blazor app at `BlazorTS.RealBlazorApp/` to validate behavior beyond Roslyn-only generator tests.
-
-- `BlazorTS.RealBlazorApp/`: a minimal real Blazor Web App that keeps only the files required for interop verification
-- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor`: a real generic Razor component
-- `BlazorTS.RealBlazorApp/Components/Pages/GenericProbe.razor.ts`: the paired script that generates the top-level `GenericProbeTSInterop`
-- `BlazorTS.RealBlazorApp.Tests/`: regression tests that assert the finalized model through reflection, DI registration, and real compiled artifacts
-
-This project specifically covers:
-
-- generic parameters stay on the component partial class
-- `Scripts` auto-injection still works in a real Razor compilation flow
-- interop services remain top-level non-generic `*TSInterop` types
-- `AddScripts(Project.Generated.Scripts.AddScripts)` registers the generated interop types for DI
+`BlazorTS.RealBlazorApp` contains the generic component `GenericProbe<TItem>` and its paired script. `BlazorTS.RealBlazorApp.Tests` checks the generated types, method signatures, and scoped registration of `ScriptsAccess<>`, and verifies that `ScriptsAccess<T>` creates an interop instance.
 
 ## 📖 Documentation
 
